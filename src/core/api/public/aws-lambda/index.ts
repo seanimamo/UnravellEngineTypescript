@@ -1,0 +1,1 @@
+export { BaseLambdaApiGatewayProxy } from "./BaseLambdaApiGatewayProxy";

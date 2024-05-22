@@ -1,0 +1,1 @@
+export { createLambdaHandlerFromClassMethod } from "./LambdaHandlerUtils";
