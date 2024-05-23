@@ -8,7 +8,7 @@ import {
 } from "../../../../../core/api/public/resources/user/BasicGetUserApi";
 import { User } from "../../../../user/objects";
 import { UnauthorizedApiError } from "../../../../../core/api/ApiError";
-import { PublicLambdaApiGatewayProxy } from "../PublicLambdaApiGatewayProxy";
+import { PublicApiGatewayProxyRequestHandler } from "../PublicApiGatewayProxyRequestHandler";
 import { UserResourceFactory } from "../../../../user/UserResourceFactory";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { AWS_INFRA_CONFIG } from "../../../../infrastructure/aws/cdk/config";
@@ -64,7 +64,7 @@ export class GetUserApi extends BasicGetUserApi<
   }
 }
 
-const getUserApiLambda = new PublicLambdaApiGatewayProxy(
+const getUserApiLambda = new PublicApiGatewayProxyRequestHandler(
   new GetUserApi(
     new UserResourceFactory(
       new DynamoDBClient(AWS_INFRA_CONFIG.deploymentRegion)

@@ -1,9 +1,9 @@
 import { PreSignUpTriggerEvent } from "aws-lambda";
-import { ApiError, InvalidRequestApiError } from "../../../../api/ApiError";
-import { DataValidationError, DataValidator } from "../../../../util";
-import { IUserResourceFactory, IUserStripeInfo } from "../../../types";
-import { ICognitoPreSignUpWebhook } from "./";
-import { IUserRepo, IUserStripeInfoRepo } from "../../../database/types";
+import { ApiError, InvalidRequestApiError } from "../../../../../api/ApiError";
+import { DataValidationError, DataValidator } from "../../../../../util";
+import { IUserResourceFactory, IUserStripeInfo } from "../../../../types";
+import { ICognitoPreSignUpWebhook } from ".";
+import { IUserRepo, IUserStripeInfoRepo } from "../../../../database/types";
 import Stripe from "stripe";
 
 /**
@@ -26,7 +26,14 @@ export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
     this.userStripeInfoRepo = this.userFactory.getUserStripeInfoRepo();
   }
 
-  isSignUpAllowed() {
+  /**
+   * If you do not specifiy the IS_SIGN_UP_ALLOWED environment variable then by default we'll set it to true.
+   * Keeping this as a enviornment variable enables us to easily turn it off and on like a switch.
+   */
+  get isSignUpAllowed() {
+    if (process.env.IS_SIGN_UP_ALLOWED === undefined) {
+      return true;
+    }
     return process.env.IS_SIGN_UP_ALLOWED == "true" ?? false;
   }
 
@@ -83,7 +90,7 @@ export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
     loggedEvent.request.clientMetadata!["rawPassword"] = "***";
     console.log("recieved pre sign up event: ", loggedEvent);
 
-    if (!this.isSignUpAllowed()) {
+    if (!this.isSignUpAllowed) {
       throw new SignUpClosedError();
     }
 

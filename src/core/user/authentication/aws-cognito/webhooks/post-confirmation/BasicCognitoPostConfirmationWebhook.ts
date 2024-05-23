@@ -2,12 +2,12 @@ import {
   PostConfirmationTriggerEvent,
   PreSignUpTriggerEvent,
 } from "aws-lambda";
-import { InvalidRequestApiError } from "../../../../api/ApiError";
-import { DataValidationError, DataValidator } from "../../../../util";
-import { IUserResourceFactory } from "../../../types";
-import { ICognitoPostConfirmationUpWebhook } from "./";
-import { ObjectDoesNotExistError } from "../../../../database/error";
-import { IUserRepo } from "../../../database/types";
+import { InvalidRequestApiError } from "../../../../../api/ApiError";
+import { DataValidationError, DataValidator } from "../../../../../util";
+import { IUserResourceFactory } from "../../../../types";
+import { ICognitoPostConfirmationUpWebhook } from ".";
+import { ObjectDoesNotExistError } from "../../../../../database/error";
+import { IUserRepo } from "../../../../database/types";
 
 /**
  * This is a generic implementation of {@link (ICognitoPostConfirmationUpWebhook)} which has logic for

@@ -2,11 +2,11 @@
 // Meaning, infrastructure resources that will be shared across all stages of your application.
 // When this app is executed, new AWS infrastructure templates will be created that you can then deploy.
 
-import { Stage } from "../../../../core/infrastructure";
 import {
   CoreAwsInfraBuilder,
   SharedGlobalInfraConfig,
 } from "../../../../core/infrastructure/aws/cdk/CoreAwsInfraBuilder";
+import { Stages } from "../../../../core/infrastructure/common/Stage";
 import { AWS_INFRA_CONFIG } from "./config";
 
 const coreAppInfraBuilder = new CoreAwsInfraBuilder(
@@ -24,7 +24,7 @@ const sharedGlobalInfraConfig: SharedGlobalInfraConfig = {
 coreAppInfraBuilder.buildAppInfra({
   sharedGlobalInfra: sharedGlobalInfraConfig,
   stageRegionInfra: {
-    stage: Stage.BETA,
+    stage: Stages.BETA,
     sharedInfra: {
       database: {
         databaseType: "dynamodb",
@@ -41,17 +41,26 @@ coreAppInfraBuilder.buildAppInfra({
       },
       userAuth: {
         cognito: {
-          frontEndVerifyCodeURL: `https://wwww.beta-${AWS_INFRA_CONFIG.dns.primaryAppDomain}/account/verify`,
           region: "us-east-1",
+          // The URL cognito will send to users emails for account verification
+          frontEndVerifyAccountCodeURL: `https://wwww.beta-${AWS_INFRA_CONFIG.dns.primaryAppDomain}/account/verify`,
+          // Configuration for our custom lambda function that runs during user signups
           preSignupLambdaTriggerConfig: {
-            codePath:
-              "../../../user/aws-cognito/CognitoPreSignUpTriggerLambda.ts",
-            lambdaFunctionName: "preSignUpLambdaTrigger_handleRequest",
+            // The path to the file our lambda file is in
+            entry: "../../../user/aws-cognito/CognitoPreSignUpTriggerLambda.ts",
+            // The  name of the actual function within the file that will be the lambda
+            handler: "preSignUpLambdaTrigger_handleRequest",
+            // The environment variables on the lambda, these can be changed without having to redeploy.
+            environment: {
+              // This enables us to turn signing up on and off like a switch on our lambda
+              IS_SIGN_UP_ALLOWED: "true",
+            },
           },
+          // Configuration for our custom lambda function that runs after a user confirms their account
           postConfirmationLambdaTriggerConfig: {
-            codePath:
+            entry:
               "../../../user/aws-cognito/CognitoPostConfirmationTriggerLambda.ts",
-            lambdaFunctionName: "postConfirmationLambdaTrigger_handleRequest",
+            handler: "postConfirmationLambdaTrigger_handleRequest",
           },
         },
       },
@@ -62,8 +71,8 @@ coreAppInfraBuilder.buildAppInfra({
           region: "us-east-1",
           lambdaApiEndpointConfig: {
             getUserByUserId: {
-              codePath: "../../../api/aws-api-gateway/public/GetUserApi.ts",
-              lambdaFunctionName: "getUserApiLambda_handleRequest",
+              entry: "../../../api/aws-api-gateway/public/GetUserApi.ts",
+              handler: "getUserApiLambda_handleRequest",
             },
           },
         },

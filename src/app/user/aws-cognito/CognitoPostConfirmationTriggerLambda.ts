@@ -1,7 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { UserResourceFactory } from "../UserResourceFactory";
-import { CognitoPostConfirmationTriggerLambda } from "../../../core/user/aws-cognito/webhooks/post-confirmation";
-import { BasicCognitoPostConfirmationWebhook } from "../../../core/user/aws-cognito/webhooks/post-confirmation";
+import { CognitoPostConfirmationTriggerLambda } from "../../../core/user/authentication/aws-cognito/webhooks/post-confirmation";
+import { BasicCognitoPostConfirmationWebhook } from "../../../core/user/authentication/aws-cognito/webhooks/post-confirmation";
 import { AWS_INFRA_CONFIG } from "../../infrastructure/aws/cdk/config";
 // import { createLambdaHandlerFromClassMethod } from "../../core/infrastructure/aws/lambda";
 
@@ -9,11 +9,11 @@ import { AWS_INFRA_CONFIG } from "../../infrastructure/aws/cdk/config";
  * This is a concrete implementation of the {@link CognitoPreSignUpTriggerLambda}
  */
 const postConfirmationLambdaTrigger = new CognitoPostConfirmationTriggerLambda(
-    new BasicCognitoPostConfirmationWebhook(
-        new UserResourceFactory(
-            new DynamoDBClient({ region: AWS_INFRA_CONFIG.deploymentRegion })
-        )
+  new BasicCognitoPostConfirmationWebhook(
+    new UserResourceFactory(
+      new DynamoDBClient({ region: AWS_INFRA_CONFIG.deploymentRegion })
     )
+  )
 );
 
 /**
@@ -26,9 +26,9 @@ const postConfirmationLambdaTrigger = new CognitoPostConfirmationTriggerLambda(
  * Luckily, this can be easily solved with context binding:
  */
 export const postConfirmationLambdaTrigger_handleRequest =
-    postConfirmationLambdaTrigger.handleRequest.bind(
-        postConfirmationLambdaTrigger
-    );
+  postConfirmationLambdaTrigger.handleRequest.bind(
+    postConfirmationLambdaTrigger
+  );
 
 // TODO: Try this instead of manually creating them.
 // export const awsLambdaHandler = createLambdaHandlerFromClassMethod(

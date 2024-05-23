@@ -1,1 +1,1 @@
-export { BaseLambdaApiGatewayProxy } from "./BaseLambdaApiGatewayProxy";
+export { BaseApiGatewayProxyRequestHandler } from "./BaseApiGatewayProxyRequestHandler";

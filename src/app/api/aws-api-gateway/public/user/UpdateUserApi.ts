@@ -7,7 +7,7 @@ import {
   IUpdateUserApiRequest,
 } from "../../../../../core/api/public/resources/user/BasicUpdateUserApi";
 import { UnauthorizedApiError } from "../../../../../core/api/ApiError";
-import { PublicLambdaApiGatewayProxy } from "../PublicLambdaApiGatewayProxy";
+import { PublicApiGatewayProxyRequestHandler } from "../PublicApiGatewayProxyRequestHandler";
 import { UserResourceFactory } from "../../../../user/UserResourceFactory";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { AWS_INFRA_CONFIG } from "../../../../infrastructure/aws/cdk/config";
@@ -48,7 +48,7 @@ export class UpdateUserApi extends BasicUpdateUserApi<
   }
 }
 
-const updateUserApiLambda = new PublicLambdaApiGatewayProxy(
+const updateUserApiLambda = new PublicApiGatewayProxyRequestHandler(
   new UpdateUserApi(
     new UserResourceFactory(
       new DynamoDBClient(AWS_INFRA_CONFIG.deploymentRegion)

@@ -1,54 +1,58 @@
 import {
+  APIGatewayProxyEvent,
   APIGatewayProxyEventBase,
   APIGatewayProxyResultV2,
   Context,
   Handler,
 } from "aws-lambda";
-import { ApiError } from "../../ApiError";
-import { IApiResponse } from "../IApiResponse";
+import { ApiError, UnauthorizedApiError } from "../../ApiError";
 import { IApiRequestProcessor } from "../IApiRequestProcessor";
 import { IApiRequest } from "../IApiRequest";
-import { Stage } from "../../../infrastructure";
+import { IApiResponse } from "../IApiResponse";
+
+export interface IApiGatewayProxyRequestProcessor<TApiGatewayAuthorizerContext>
+  extends IApiRequestProcessor<
+    APIGatewayProxyEventBase<TApiGatewayAuthorizerContext>,
+    TApiGatewayAuthorizerContext,
+    IApiRequest,
+    IApiResponse
+  > {}
 
 /**
  * This class intended to be used as a reusable AWS Lambda {@link BaseLambdaApiGatewayProxy.handleRequest | function handler}
  * for an AWS API Gateway Lambda Proxy. It contains all the common HTTP API related logic and by supplying different
  * {@link IApiRequestProcessor | API processors} you can reuse this class to handle all of your different API endpoints.
  */
-export abstract class BaseLambdaApiGatewayProxy<TLambdaAuthorizer> {
-  /**
-   * The infrastructure stage this AWS Lambda will be running in. e.g. Beta for testing versus Prod for customer use.
-   */
-  private readonly stage: Stage;
-  /**
-   * the set of domains that are allowed to make requests to this API.
-   */
-  private readonly originAllowList: Set<string>;
+export abstract class BaseApiGatewayProxyRequestHandler<
+  TApiGatewayAuthorizerContext
+> {
   constructor(
-    private readonly apiRequestProcessor: IApiRequestProcessor<
-      APIGatewayProxyEventBase<TLambdaAuthorizer>,
-      TLambdaAuthorizer,
-      IApiRequest,
-      IApiResponse
-    >
+    /**
+     * The class that will be handling the logic for processing the api request
+     */
+    private readonly apiRequestProcessor: IApiGatewayProxyRequestProcessor<TApiGatewayAuthorizerContext>,
+    /**
+     * Gets the set of domains that are allowed to make requests to this API.
+     * @remarks Add to the set to "*" to allow any domain.
+     */
+    private readonly originAllowList: Set<string>
+  ) {}
+
+  verifyHttpEvent(
+    event: APIGatewayProxyEventBase<TApiGatewayAuthorizerContext>
   ) {
-    this.stage =
-      process.env.STAGE !== undefined
-        ? Stage[process.env.STAGE.toUpperCase() as keyof typeof Stage]
-        : Stage.BETA;
-
-    this.originAllowList = this.initializeOriginAllowList(this.stage);
+    const requestOrigin = event.headers["origin"];
+    if (!requestOrigin) {
+      throw new UnauthorizedApiError(
+        `Request origin is not allow listed: ${requestOrigin}`
+      );
+    }
+    if (requestOrigin && !this.originAllowList.has(requestOrigin)) {
+      throw new UnauthorizedApiError(
+        `Request origin is not allow listed: ${requestOrigin}`
+      );
+    }
   }
-
-  abstract verifyEventOrigin(
-    event: APIGatewayProxyEventBase<TLambdaAuthorizer>
-  ): void;
-
-  /**
-   * Gets the set of domains that are allowed to make requests to this API.
-   * @remarks Add to the set to "*" to allow any domain.
-   */
-  abstract initializeOriginAllowList(stage: Stage): Set<string>;
 
   /**
    * Gets the HTTP headers to be included on the API response.
@@ -57,19 +61,19 @@ export abstract class BaseLambdaApiGatewayProxy<TLambdaAuthorizer> {
   abstract getResponseHeaders(): Record<string, string>;
 
   handleRequest: Handler<
-    APIGatewayProxyEventBase<TLambdaAuthorizer>,
+    APIGatewayProxyEventBase<TApiGatewayAuthorizerContext>,
     APIGatewayProxyResultV2
   > = async (
-    event: APIGatewayProxyEventBase<TLambdaAuthorizer>,
+    event: APIGatewayProxyEventBase<TApiGatewayAuthorizerContext>,
     context: Context
   ) => {
     console.info("Recieved APIGatewayProxyEvent:", event);
     console.info(
-      "Cognito authorizor:",
+      "Lambda Authorizor:",
       JSON.stringify(event.requestContext.authorizer)
     );
     try {
-      this.verifyEventOrigin(event);
+      this.verifyHttpEvent(event);
       let request: IApiRequest | undefined = undefined;
       // ApiRequestProcessors don't always have any actual request data necessary to process.
       if (this.apiRequestProcessor.extractRequest) {

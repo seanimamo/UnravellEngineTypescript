@@ -1,4 +1,6 @@
-export enum Stage {
-  BETA = 'Beta',
-  PROD = 'Prod',
-}
+export const Stages = {
+  BETA: "Beta",
+  PROD: "Prod",
+} as const;
+
+export type Stage = (typeof Stages)[keyof typeof Stages];
