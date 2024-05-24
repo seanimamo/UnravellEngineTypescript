@@ -6,7 +6,6 @@ import { CognitoStack } from "./users";
 import { IUserPool } from "aws-cdk-lib/aws-cognito";
 import { PublicServerlessApiStack } from "./api";
 import { NodejsFunctionProps } from "aws-cdk-lib/aws-lambda-nodejs";
-import { Stages } from "../../common/Stage";
 
 export interface SharedGlobalInfraConfig {
   dns: {
@@ -132,7 +131,7 @@ export class CoreAwsInfraBuilder {
   composeSharedGlobalInfra(config: SharedGlobalInfraConfig) {
     const infraResourceIdBuilder = new InfraResourceIdBuilder(
       this.appName,
-      Stages.PROD
+      Stage.PROD
     );
 
     // Creates the root DNS infrastructure for your app, necessary for enabling <yourDomain>.com to work.
@@ -166,7 +165,7 @@ export class CoreAwsInfraBuilder {
     const databaseInfra = this.createDatabaseInfra(stage, config.database);
 
     let emailInfra;
-    if (stage === Stages.PROD) {
+    if (stage === Stage.PROD) {
       emailInfra = this.createEmailInfra(stage, {
         // In production we want emails to come from your base domain e.g. no-reply@myApp.com instead of the one suffixed
         // with stages such as no-reply@prod.myApp.com

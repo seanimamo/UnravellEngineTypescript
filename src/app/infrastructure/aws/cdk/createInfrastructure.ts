@@ -2,11 +2,11 @@
 // Meaning, infrastructure resources that will be shared across all stages of your application.
 // When this app is executed, new AWS infrastructure templates will be created that you can then deploy.
 
+import { Stage } from "../../../../core/infrastructure";
 import {
   CoreAwsInfraBuilder,
   SharedGlobalInfraConfig,
 } from "../../../../core/infrastructure/aws/cdk/CoreAwsInfraBuilder";
-import { Stages } from "../../../../core/infrastructure/common/Stage";
 import { AWS_INFRA_CONFIG } from "./config";
 
 const coreAppInfraBuilder = new CoreAwsInfraBuilder(
@@ -24,7 +24,7 @@ const sharedGlobalInfraConfig: SharedGlobalInfraConfig = {
 coreAppInfraBuilder.buildAppInfra({
   sharedGlobalInfra: sharedGlobalInfraConfig,
   stageRegionInfra: {
-    stage: Stages.BETA,
+    stage: Stage.BETA,
     sharedInfra: {
       database: {
         databaseType: "dynamodb",
