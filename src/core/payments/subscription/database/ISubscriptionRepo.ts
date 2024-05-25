@@ -25,7 +25,7 @@ export interface ISubscriptionRepo {
     userId: string,
     status?: SubscriptionStatus
   ): Promise<IPaginatedDatabaseResponse<ISubscription[]>>;
-  /***
+  /**
    * Update a subscription within the database
    */
   update(
