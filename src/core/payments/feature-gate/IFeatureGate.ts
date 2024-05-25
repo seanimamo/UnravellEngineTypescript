@@ -1,7 +1,7 @@
 /**
- * Core interface for Feature quotas. A feature quota enables us to limit how much access a user has to a given feature based on a given payment plan
+ * Core interface for Feature gates. A feature gate enables us to limit how much access a user has to a given feature based on a given payment plan
  */
-export interface IFeatureQuota {
+export interface IFeatureGate {
   /**
    * Unique identifier for the quota object
    */

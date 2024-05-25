@@ -16,25 +16,25 @@ import {
 } from "../../../../database/dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
 import { retryAsyncMethodWithExpBackoffJitter } from "../../../../util";
-import { IFeatureQuota } from "../../../types";
 import { IDatabaseResponse, ISerializer } from "../../../../database";
-import { IFeatureQuotaRepo } from "../IFeatureQuotaRepo";
+import { IFeatureGateRepo } from "../IFeatureGateRepo";
+import { IFeatureGate } from "../../IFeatureGate";
 
 /**
- * A basic implementation of {@link IFeatureQuotaRepo} using dynamodb as the database to handle {@link IFeatureQuota} data.
+ * A basic implementation of {@link IFeatureGateRepo} using dynamodb as the database to handle {@link IFeatureGate} data.
  *
  * @remarks Because this class is designed to work purely off of interfaces it can be easily extended to handle more functionality.
  */
-export abstract class BasicFeatureQuotaDynamoDbRepo
-  extends DynamoDbRepository<IFeatureQuota>
-  implements IFeatureQuotaRepo
+export abstract class BasicFeatureGateDynamoDbRepo
+  extends DynamoDbRepository<IFeatureGate>
+  implements IFeatureGateRepo
 {
-  public static DB_IDENTIFIER = "FEATURE_QUOTA";
+  public static DB_IDENTIFIER = "FEATURE_GATE";
   #client: DynamoDBClient;
 
   constructor(
     client: DynamoDBClient,
-    serializer: ISerializer<IFeatureQuota>,
+    serializer: ISerializer<IFeatureGate>,
     tableName: string
   ) {
     super(client, serializer, tableName);
@@ -42,47 +42,47 @@ export abstract class BasicFeatureQuotaDynamoDbRepo
   }
 
   /**
-   * Validates the data within an {@link IFeatureQuota} is safe to be persisted to a database.
+   * Validates the data within an {@link IFeatureGate} is safe to be persisted to a database.
    */
-  abstract validate(featureQuota: IFeatureQuota): void;
+  abstract validate(featureGate: IFeatureGate): void;
 
-  createPartitionKey = (featureQuota: IFeatureQuota) => {
-    return featureQuota.id;
+  createPartitionKey = (featureGate: IFeatureGate) => {
+    return featureGate.id;
   };
 
   createSortKey = () => {
-    return BasicFeatureQuotaDynamoDbRepo.DB_IDENTIFIER;
+    return BasicFeatureGateDynamoDbRepo.DB_IDENTIFIER;
   };
 
-  async delete(featureQuota: IFeatureQuota) {
-    return await super.delete(featureQuota);
+  async delete(featureGate: IFeatureGate) {
+    return await super.delete(featureGate);
   }
 
-  async getById(id: string): Promise<IDatabaseResponse<IFeatureQuota | null>> {
+  async getById(id: string): Promise<IDatabaseResponse<IFeatureGate | null>> {
     return await super.getUniqueItemByCompositeKey({
       primaryKey: id,
       sortKey: {
-        value: BasicFeatureQuotaDynamoDbRepo.DB_IDENTIFIER,
+        value: BasicFeatureGateDynamoDbRepo.DB_IDENTIFIER,
         conditionExpressionType: "COMPLETE",
       },
     });
   }
 
-  async save(featureQuota: IFeatureQuota) {
-    this.validate(featureQuota);
+  async save(featureGate: IFeatureGate) {
+    this.validate(featureGate);
 
     const gsiAttributes: Record<string, AttributeValue> = {};
 
-    // GSI1: (Get featureQuota by userId & featureId)
+    // GSI1: (Get featureGate by userId & featureId)
     gsiAttributes[`${GENERIC_DYNAMODB_INDEXES.GSI1.partitionKeyName}`] = {
-      S: BasicFeatureQuotaDynamoDbRepo.DB_IDENTIFIER,
+      S: BasicFeatureGateDynamoDbRepo.DB_IDENTIFIER,
     };
     gsiAttributes[`${GENERIC_DYNAMODB_INDEXES.GSI1.sortKeyName}`] = {
-      S: KeyFactory.create([featureQuota.userId, featureQuota.featureId]),
+      S: KeyFactory.create([featureGate.userId, featureGate.featureId]),
     };
 
     return await super.saveItem({
-      object: featureQuota,
+      object: featureGate,
       checkForExistingKey: "COMPOSITE",
       extraItemAttributes: gsiAttributes,
     });
@@ -95,7 +95,7 @@ export abstract class BasicFeatureQuotaDynamoDbRepo
     }
 
     return await super.getItemsByCompositeKey({
-      primaryKey: BasicFeatureQuotaDynamoDbRepo.DB_IDENTIFIER,
+      primaryKey: BasicFeatureGateDynamoDbRepo.DB_IDENTIFIER,
       sortKey: {
         value: KeyFactory.create(sortKeyParams),
         conditionExpressionType: "BEGINS_WITH",
@@ -113,13 +113,13 @@ export abstract class BasicFeatureQuotaDynamoDbRepo
     }
   ) {
     return await retryAsyncMethodWithExpBackoffJitter(
-      () => this._updateFeatureQuota(id, params),
+      () => this._updateFeatureGate(id, params),
       10,
       [ConditionalCheckFailedException]
     );
   }
 
-  private async _updateFeatureQuota(
+  private async _updateFeatureGate(
     id: string,
     params: {
       usage?: number;
@@ -127,10 +127,10 @@ export abstract class BasicFeatureQuotaDynamoDbRepo
       unlimitedAccess?: boolean;
     }
   ) {
-    let getFeatureQuotaResponse = await this.getById(id);
-    const featureQuota = getFeatureQuotaResponse.data;
-    if (featureQuota === null) {
-      throw new ObjectDoesNotExistError("Feature Quota does not exist");
+    let getFeatureGateResponse = await this.getById(id);
+    const featureGate = getFeatureGateResponse.data;
+    if (featureGate === null) {
+      throw new ObjectDoesNotExistError("Feature Gate does not exist");
     }
 
     const updateExpressionCommands = [];
@@ -153,17 +153,17 @@ export abstract class BasicFeatureQuotaDynamoDbRepo
 
     if (updateExpressionCommands.length === 0) {
       throw new InvalidParametersError(
-        "Cannot attempt featureQuota update with no changes"
+        "Cannot attempt featureGate update with no changes"
       );
     }
 
     // This enables optimistic locking.
     updateExpressionCommands.push(`objectVersion = :updatedObjectVersion`);
     expressionAttributeValues[":updatedObjectVersion"] = {
-      N: `${featureQuota.objectVersion + 1}`,
+      N: `${featureGate.objectVersion + 1}`,
     };
     expressionAttributeValues[":currentObjectVersion"] = {
-      N: `${featureQuota.objectVersion}`,
+      N: `${featureGate.objectVersion}`,
     };
 
     const updateExpression = this.updateItemExpressionBuilder(
@@ -176,7 +176,7 @@ export abstract class BasicFeatureQuotaDynamoDbRepo
           S: id,
         },
         [GENERIC_DYNAMODB_INDEXES.PRIMARY.sortKeyName]: {
-          S: BasicFeatureQuotaDynamoDbRepo.DB_IDENTIFIER,
+          S: BasicFeatureGateDynamoDbRepo.DB_IDENTIFIER,
         },
       },
       ConditionExpression: `objectVersion = :currentObjectVersion`,
