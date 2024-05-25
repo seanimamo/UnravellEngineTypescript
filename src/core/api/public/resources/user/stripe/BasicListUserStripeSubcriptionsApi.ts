@@ -10,8 +10,8 @@ import { DataValidator, DataValidationError } from "../../../../../util";
 import { IPaginatedApiResponse } from "../../../IApiResponse";
 import { IApiRequestProcessor } from "../../../IApiRequestProcessor";
 import { IApiRequest } from "../../../IApiRequest";
-import { IStripeSubscriptionRepo } from "../../../../../payments/stripe/subscription-cache/database";
-import { IStripeSubscription } from "../../../../../payments/stripe/types";
+import { IStripeSubscriptionCacheRepo } from "../../../../../payments/stripe/subscription-cache/database";
+import { IStripeSubscriptionCache } from "../../../../../payments/stripe/subscription-cache";
 
 export interface IListUserStripeSubcriptionApiRequest extends IApiRequest {
   userId: string;
@@ -21,18 +21,18 @@ export interface IListUserStripeSubcriptionApiResponse
   extends IPaginatedApiResponse {
   body: {
     data: {
-      stripeSubscriptions: IStripeSubscription[];
+      stripeSubscriptions: IStripeSubscriptionCache[];
     };
     paginationToken: unknown;
   };
 }
 
 /**
- * An abstract implementation of {@link IApiRequestProcessor} with basic logic for retrieing user information.
+ * An abstract implementation of {@link IApiRequestProcessor} with basic logic for retrieing user stripe subscription data
  *
  * @remarks Feel free to make your own class that implements {@link IApiRequestProcessor} if extending this implementation is not sufficient
  */
-export abstract class BasicListUserStripeSubcriptions<
+export abstract class BasicListUserStripeSubcriptionsApi<
   TSourceEvent,
   TAuthorizationData
 > implements
@@ -47,7 +47,7 @@ export abstract class BasicListUserStripeSubcriptions<
 
   constructor(
     private readonly userStripeInfoRepo: IUserStripeInfoRepo,
-    private readonly stripeSubscriptionRepo: IStripeSubscriptionRepo
+    private readonly stripeSubscriptionRepo: IStripeSubscriptionCacheRepo
   ) {}
 
   /**

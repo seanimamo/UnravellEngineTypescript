@@ -27,11 +27,6 @@ export class UserResourceFactory implements IUserResourceFactory {
    */
   private static USER_REPO_TABLE_NAME =
     AWS_INFRA_CONFIG.database.tables.user.tableName;
-  /**
-   * Dynamodb table name for user stripe info. (It get stored in the same table as users.)
-   */
-  private static USER_STRIPE_INFO_TABLE_NAME =
-    UserResourceFactory.USER_REPO_TABLE_NAME;
 
   constructor(private readonly dbClient: DynamoDBClient) {
     this.dbClient = dbClient;
@@ -93,7 +88,8 @@ export class UserResourceFactory implements IUserResourceFactory {
     return new UserStripeInfoDynamoDbRepo(
       this.dbClient,
       UserResourceFactory.USER_STRIPE_INFO_SERIALIZER,
-      UserResourceFactory.USER_STRIPE_INFO_TABLE_NAME
+      // Dynamodb table name for user stripe info is stored in the same table as users.)
+      UserResourceFactory.USER_REPO_TABLE_NAME
     );
   }
 }

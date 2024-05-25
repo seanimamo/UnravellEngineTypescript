@@ -3,12 +3,12 @@ import {
   APIGatewayProxyWithCognitoAuthorizerEvent,
 } from "aws-lambda";
 import {
-  BasicListUserStripeSubcriptions,
+  BasicListUserStripeSubcriptionsApi,
   IListUserStripeSubcriptionApiRequest,
-} from "../../../../../../core/api/public/resources/user/stripe/BasicListUserStripeSubcriptions";
+} from "../../../../../../core/api/public/resources/user/stripe/BasicListUserStripeSubcriptionsApi";
 import { UnauthorizedApiError } from "../../../../../../core/api/ApiError";
 
-export class ListUserStripeSubscriptions extends BasicListUserStripeSubcriptions<
+export class ListUserStripeSubscriptions extends BasicListUserStripeSubcriptionsApi<
   APIGatewayProxyWithCognitoAuthorizerEvent,
   APIGatewayProxyCognitoAuthorizer
 > {
