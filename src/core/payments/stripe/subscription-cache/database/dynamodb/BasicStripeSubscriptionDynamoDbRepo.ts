@@ -5,63 +5,63 @@ import {
   UpdateItemCommand,
   UpdateItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
-import { ISerializer } from "../../../../database";
+import { ISerializer } from "../../../../../database";
 import {
   GENERIC_DYNAMODB_INDEXES,
   DynamoDbRepository,
   KeyFactory,
-} from "../../../../database/dynamodb";
+} from "../../../../../database/dynamodb";
 import Stripe from "stripe";
 import {
   InvalidParametersError,
   ObjectDoesNotExistError,
-} from "../../../../database/error";
-import { retryAsyncMethodWithExpBackoffJitter } from "../../../../util";
+} from "../../../../../database/error";
+import { retryAsyncMethodWithExpBackoffJitter } from "../../../../../util";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
-import { IStripeSubscriptionRepo } from "../IStripeSubscriptionRepo";
-import { IStripeSubscription } from "../../types";
+import { IStripeSubscriptionCacheRepo } from "../../IStripeSubscriptionCacheRepo";
+import { IStripeSubscriptionCache } from "../../IStripeSubscriptionCache";
 
 /**
- * A basic implementation of {@link IStripeSubscriptionRepo} saving and modifying user stripe data
- * with dynamodb. This class is designed to work purely off of interfaces which
- * enables it to be highly modular.
+ * A basic implementation of {@link IStripeSubscriptionCacheRepo} using dynamodb as the database to handle {@link IStripeSubscriptionCache} data.
+ *
+ * @remarks Because this class is designed to work purely off of interfaces it can be easily extended to handle more functionality.
  */
-export abstract class BasicStripeSubscriptionDynamoDbRepo
-  extends DynamoDbRepository<IStripeSubscription>
-  implements IStripeSubscriptionRepo
+export abstract class BasicStripeSubscriptionCacheDynamoDbRepo
+  extends DynamoDbRepository<IStripeSubscriptionCache>
+  implements IStripeSubscriptionCacheRepo
 {
-  public static DB_IDENTIFIER = `STRIPE_SUBSCRIPTION`;
+  public static DB_IDENTIFIER = `STRIPE_SUBSCRIPTION_CACHE`;
   /**
-   * Enables logic for denormalized data in dynamodb
-   * Dernormalizing the data means that other than the keys & GSI's, the rest of the data will be
+   * Enables logic for compressed data in dynamodb
+   * compress the data means that other than the keys & GSI's, the rest of the data will be
    * stringified under a single asttribute in Dynamodb which reduces memory as compared to dynamodb JSON.
    */
-  private readonly denormalize = true;
+  private readonly compress = true;
   constructor(
     client: DynamoDBClient,
-    serializer: ISerializer<IStripeSubscription>,
+    serializer: ISerializer<IStripeSubscriptionCache>,
     tableName: string
   ) {
     super(client, serializer, tableName);
   }
 
   /**
-   * Validates the data within an {@link IStripeSubscription} is safe to be persisted to a database.
+   * Validates the data within an {@link IStripeSubscriptionCache} is safe to be persisted to a database.
    */
-  abstract validate(stripeSubscription: IStripeSubscription): void;
+  abstract validate(stripeSubscription: IStripeSubscriptionCache): void;
 
-  createPartitionKey = (stripeSubscription: IStripeSubscription) => {
+  createPartitionKey = (stripeSubscription: IStripeSubscriptionCache) => {
     return stripeSubscription.customerId;
   };
 
-  createSortKey = (stripeSubscription: IStripeSubscription) => {
+  createSortKey = (stripeSubscription: IStripeSubscriptionCache) => {
     return KeyFactory.create([
-      BasicStripeSubscriptionDynamoDbRepo.DB_IDENTIFIER,
+      BasicStripeSubscriptionCacheDynamoDbRepo.DB_IDENTIFIER,
       stripeSubscription.subscription.id,
     ]);
   };
 
-  async save(stripeSubscription: IStripeSubscription) {
+  async save(stripeSubscription: IStripeSubscriptionCache) {
     this.validate(stripeSubscription);
 
     const gsiAttributes: Record<string, AttributeValue> = {};
@@ -69,7 +69,7 @@ export abstract class BasicStripeSubscriptionDynamoDbRepo
     // GSI1: (Get all subscriptions by subscription status, sorted by create date)
     if (stripeSubscription.subscription) {
       gsiAttributes[`${GENERIC_DYNAMODB_INDEXES.GSI1.partitionKeyName}`] = {
-        S: BasicStripeSubscriptionDynamoDbRepo.DB_IDENTIFIER,
+        S: BasicStripeSubscriptionCacheDynamoDbRepo.DB_IDENTIFIER,
       };
       gsiAttributes[`${GENERIC_DYNAMODB_INDEXES.GSI1.sortKeyName}`] = {
         S: KeyFactory.create([
@@ -84,7 +84,7 @@ export abstract class BasicStripeSubscriptionDynamoDbRepo
         object: stripeSubscription,
         checkForExistingKey: "COMPOSITE",
         extraItemAttributes: gsiAttributes,
-        denormalize: this.denormalize,
+        compress: this.compress,
       });
     } catch (error) {
       throw error;
@@ -99,12 +99,12 @@ export abstract class BasicStripeSubscriptionDynamoDbRepo
       primaryKey: customerId,
       sortKey: {
         value: KeyFactory.create([
-          BasicStripeSubscriptionDynamoDbRepo.DB_IDENTIFIER,
+          BasicStripeSubscriptionCacheDynamoDbRepo.DB_IDENTIFIER,
           subscriptionId,
         ]),
         conditionExpressionType: "COMPLETE",
       },
-      denormalize: this.denormalize,
+      compress: this.compress,
     });
   }
 
@@ -112,16 +112,16 @@ export abstract class BasicStripeSubscriptionDynamoDbRepo
     return await super.getItemsByCompositeKey({
       primaryKey: customerId,
       sortKey: {
-        value: BasicStripeSubscriptionDynamoDbRepo.DB_IDENTIFIER,
+        value: BasicStripeSubscriptionCacheDynamoDbRepo.DB_IDENTIFIER,
         conditionExpressionType: "BEGINS_WITH",
       },
-      denormalize: this.denormalize,
+      compress: this.compress,
     });
   }
 
   async listAllBySubscriptionStatus(status: Stripe.Subscription.Status) {
     return await super.getItemsByCompositeKey({
-      primaryKey: BasicStripeSubscriptionDynamoDbRepo.DB_IDENTIFIER,
+      primaryKey: BasicStripeSubscriptionCacheDynamoDbRepo.DB_IDENTIFIER,
       sortKey: {
         value: status,
         conditionExpressionType: "BEGINS_WITH",
@@ -168,7 +168,7 @@ export abstract class BasicStripeSubscriptionDynamoDbRepo
     let expressionNames: Record<string, string> | undefined;
     let expressionAttributeValues: Record<string, AttributeValue> = {};
 
-    const updatedSubscription: IStripeSubscription = {
+    const updatedSubscription: IStripeSubscriptionCache = {
       ...latestStripeInfo,
       apiVersion: updates.apiVersion,
       subscription: updates.subscription,
@@ -209,13 +209,13 @@ export abstract class BasicStripeSubscriptionDynamoDbRepo
       updateExpressionCommands
     );
     const updateParams: UpdateItemCommandInput = {
-      TableName: process.env.DYNAMO_MAIN_TABLE_NAME!,
+      TableName: this.tableName,
       Key: {
         [GENERIC_DYNAMODB_INDEXES.PRIMARY.partitionKeyName]: {
           S: customerId,
         },
         [GENERIC_DYNAMODB_INDEXES.PRIMARY.sortKeyName]: {
-          S: BasicStripeSubscriptionDynamoDbRepo.DB_IDENTIFIER,
+          S: BasicStripeSubscriptionCacheDynamoDbRepo.DB_IDENTIFIER,
         },
       },
       ConditionExpression: `objectVersion = :currentObjectVersion`,

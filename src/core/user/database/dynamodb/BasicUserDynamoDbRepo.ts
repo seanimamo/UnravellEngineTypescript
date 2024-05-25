@@ -1,4 +1,3 @@
-import "dotenv/config";
 import {
   AttributeValue,
   ConditionalCheckFailedException,
@@ -21,9 +20,9 @@ import { IDatabaseResponse, ISerializer } from "../../../database";
 import { IUserRepo } from "../types";
 
 /**
- * A basic user repository for retriveing, saving and modifying user data
- * with dynamodb. This class is designed to work purely off of interfaces which
- * enables it to be highly modular.
+ * A basic implementation of {@link IUserRepo} using dynamodb as the database to handle {@link IUser} data.
+ *
+ * @remarks Because this class is designed to work purely off of interfaces it can be easily extended to handle more functionality
  */
 export abstract class BasicUserDynamoDbRepo
   extends DynamoDbRepository<IUser>
@@ -132,35 +131,6 @@ export abstract class BasicUserDynamoDbRepo
     });
   }
 
-  async updateIsAccountConfirmed(userId: string, isAccountConfirmed: boolean) {
-    const params: UpdateItemCommandInput = {
-      TableName: process.env.DYNAMO_MAIN_TABLE_NAME!,
-      Key: {
-        [GENERIC_DYNAMODB_INDEXES.PRIMARY.partitionKeyName]: {
-          S: userId,
-        },
-        [GENERIC_DYNAMODB_INDEXES.PRIMARY.sortKeyName]: {
-          S: BasicUserDynamoDbRepo.DB_IDENTIFIER,
-        },
-      },
-      UpdateExpression: `SET isAccountConfirmed = :isAccountConfirmed`,
-      ExpressionAttributeValues: {
-        ":isAccountConfirmed": { BOOL: isAccountConfirmed },
-      },
-      ConditionExpression: `attribute_exists(${GENERIC_DYNAMODB_INDEXES.PRIMARY.partitionKeyName})
-             and attribute_exists(${GENERIC_DYNAMODB_INDEXES.PRIMARY.sortKeyName})`,
-    };
-
-    try {
-      return await this.#client.send(new UpdateItemCommand(params));
-    } catch (e) {
-      if (e instanceof ConditionalCheckFailedException) {
-        throw new ObjectDoesNotExistError("User does not exist");
-      }
-      throw e;
-    }
-  }
-
   async update(
     uuid: string,
     params: {
@@ -235,7 +205,7 @@ export abstract class BasicUserDynamoDbRepo
       updateExpressionCommands
     );
     const updateParams: UpdateItemCommandInput = {
-      TableName: process.env.DYNAMO_MAIN_TABLE_NAME!,
+      TableName: this.tableName,
       Key: {
         [GENERIC_DYNAMODB_INDEXES.PRIMARY.partitionKeyName]: {
           S: id,

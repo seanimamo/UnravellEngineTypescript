@@ -1,9 +1,9 @@
-import { BasicStripeSubscriptionDynamoDbRepo } from "../../../core/payments/stripe/database";
-import { IStripeSubscription } from "../../../core/payments/stripe/types";
+import { BasicStripeSubscriptionCacheDynamoDbRepo } from "../../../core/payments/stripe/subscription-cache/database";
+import { IStripeSubscriptionCache } from "../../../core/payments/stripe/subscription-cache";
 
-export class StripeSubscriptionRepo extends BasicStripeSubscriptionDynamoDbRepo {
-    // TODO: Implement this
-    validate(stripeSubscription: IStripeSubscription): void {
-        return;
-    }
+export class StripeSubscriptionRepo extends BasicStripeSubscriptionCacheDynamoDbRepo {
+  // TODO: Implement this
+  validate(stripeSubscriptionCache: IStripeSubscriptionCache): void {
+    return;
+  }
 }

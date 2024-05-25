@@ -10,7 +10,7 @@ import { DataValidator, DataValidationError } from "../../../../../util";
 import { IPaginatedApiResponse } from "../../../IApiResponse";
 import { IApiRequestProcessor } from "../../../IApiRequestProcessor";
 import { IApiRequest } from "../../../IApiRequest";
-import { IStripeSubscriptionRepo } from "../../../../../payments/stripe/database";
+import { IStripeSubscriptionRepo } from "../../../../../payments/stripe/subscription-cache/database";
 import { IStripeSubscription } from "../../../../../payments/stripe/types";
 
 export interface IListUserStripeSubcriptionApiRequest extends IApiRequest {

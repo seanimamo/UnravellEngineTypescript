@@ -1,0 +1,1 @@
+export { BasicUserPassword } from "./BasicUserPassword";

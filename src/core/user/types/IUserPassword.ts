@@ -1,7 +1,11 @@
 export interface IUserPassword {
-    /**
-     * One way encrypted password.
-     */
-    passwordHash: string;
-    isPasswordCorrect(plainTextPassword: string): boolean;
+  /**
+   * The salt used to generate the password hash
+   */
+  salt: string;
+  /**
+   * The password that was hashed using the provided salt
+   */
+  passwordHash: string;
+  isPasswordCorrect(plainTextPassword: string): boolean;
 }

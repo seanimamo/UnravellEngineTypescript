@@ -12,7 +12,6 @@ import {
   QueryCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-
 import { UniqueObjectAlreadyExistsError } from "../error";
 import { PaginatedDynamoDbResponse } from "./PaginatedDynamoDbResponse";
 import { IDatabaseResponse, ISerializer } from "..";
@@ -49,14 +48,19 @@ export abstract class DynamoDbRepository<T extends Record<any, any>> {
     object: T;
     checkForExistingKey: "PRIMARY" | "COMPOSITE" | "NONE";
     extraItemAttributes?: Record<string, AttributeValue>;
-    denormalize?: boolean;
+    /**
+     * Enables logic for compressed data in dynamodb
+     * compress the data means that other than the keys & GSI's, the rest of the data will be
+     * stringified under a single asttribute in Dynamodb which reduces memory as compared to dynamodb JSON.
+     */
+    compress?: boolean;
   }): Promise<IDatabaseResponse<PutItemCommandOutput>> {
     const commandParams: PutItemCommandInput = {
       TableName: this.tableName,
       Item: {},
     };
 
-    if (params.denormalize === true) {
+    if (params.compress === true) {
       commandParams.Item!["data"] = {
         S: this.serializer.serialize(params.object),
       };
@@ -135,14 +139,14 @@ export abstract class DynamoDbRepository<T extends Record<any, any>> {
       conditionExpressionType: "BEGINS_WITH" | "COMPLETE";
     };
     index?: DynamoDbIndex;
-    denormalize?: boolean;
+    compress?: boolean;
     sortDirection?: "ASCENDING" | "DESCENDING";
   }): Promise<IDatabaseResponse<T | null>> {
     const response = await this.getItemsByCompositeKey({
       primaryKey: params.primaryKey,
       sortKey: params.sortKey,
       index: params.index,
-      denormalize: params.denormalize,
+      compress: params.compress,
       queryLimit: 2, // query limit still set to 2 to limit number of item retrieved but still trigger error if more than 1 found.
       sortDirection: params.sortDirection,
     });
@@ -171,7 +175,7 @@ export abstract class DynamoDbRepository<T extends Record<any, any>> {
     paginationToken?: Record<string, AttributeValue>;
     queryLimit?: number;
     sortDirection?: "ASCENDING" | "DESCENDING";
-    denormalize?: boolean;
+    compress?: boolean;
   }): Promise<PaginatedDynamoDbResponse<T[]>> {
     const commandParams: QueryCommandInput = {
       TableName: this.tableName,
@@ -232,7 +236,7 @@ export abstract class DynamoDbRepository<T extends Record<any, any>> {
     const marshalledItems: T[] = [];
     dynamoResponse.Items!.forEach(async (item) => {
       let marshalledItem: T;
-      if (params.denormalize === true) {
+      if (params.compress === true) {
         marshalledItem = this.serializer.deserialize(item.data.S!);
       } else {
         marshalledItem = await this.fromDynamoDBJson(item);

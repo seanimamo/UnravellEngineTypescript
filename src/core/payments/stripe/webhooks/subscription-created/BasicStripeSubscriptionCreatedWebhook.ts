@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { IStripeSubscriptionRepo } from "../../database";
+import { IStripeSubscriptionCacheRepo } from "../../subscription-cache/database";
 import { IStripeSubscriptionCreatedWebhook } from ".";
 
 /**
@@ -9,82 +9,79 @@ import { IStripeSubscriptionCreatedWebhook } from ".";
  * The event fires whenever a customers subscription is updated.
  */
 export class BasicStripeSubscriptionCreatedWebhook
-    implements IStripeSubscriptionCreatedWebhook
+  implements IStripeSubscriptionCreatedWebhook
 {
-    constructor(
-        private readonly stripeSubscriptionRepo: IStripeSubscriptionRepo
-    ) {}
+  constructor(
+    private readonly stripeSubscriptionCacheRepo: IStripeSubscriptionCacheRepo
+  ) {}
 
-    async handleEvent(event: Stripe.Event) {
-        // This is the expected event type. This guarentees our type cast of
-        // event.data.object to be of type Stripe.Subscription
-        if (event.type !== "customer.subscription.created") {
-            throw new Error(`Unexpected Stripe event type: ${event.type}`);
-        }
-
-        const newSubscription: Stripe.Subscription = event.data
-            .object as Stripe.Subscription;
-
-        // This may be unecessary but it guarentees we're working with the Stripe.Subscription object.
-        if (newSubscription.object !== "subscription") {
-            throw new Error(
-                `Unexpected inner stripe event object ${newSubscription.object}`
-            );
-        }
-
-        // Types suggest subscription.customer could be string | Stripe.Customer | Stripe.DeletedCustomer, so we handle all cases.
-        let customerId: string;
-        if (typeof newSubscription.customer !== "string") {
-            customerId = newSubscription.customer.id;
-        } else {
-            customerId = newSubscription.customer;
-        }
-
-        let existingStripeSubsciption;
-
-        try {
-            existingStripeSubsciption =
-                await this.stripeSubscriptionRepo.getByCustomerAndSubscriptionId(
-                    customerId,
-                    newSubscription.id
-                );
-        } catch (error) {
-            console.error(
-                `Failed to get customer stripe subscription from database for stripe customer id ${customerId}`,
-                error
-            );
-        }
-
-        if (existingStripeSubsciption) {
-            console.error(
-                "Unexpectedly found an existing customer subscription in the database. Overwriting existing subscription. Existing subscription:",
-                existingStripeSubsciption
-            );
-
-            const databaseResponse = await this.stripeSubscriptionRepo.update(
-                customerId,
-                {
-                    subscription: newSubscription,
-                }
-            );
-
-            console.log(
-                "Successfully updated user subscription",
-                databaseResponse
-            );
-        } else {
-            // TODO: Replace this with a factory for creating the object so people can extend IStripeSubscription
-            const databaseResponse = await this.stripeSubscriptionRepo.save({
-                objectVersion: 1,
-                apiVersion: event.api_version!,
-                customerId: customerId,
-                subscription: newSubscription,
-            });
-
-            console.log(
-                "Successfully saved new customer subscription",
-                databaseResponse
-            );
-        }
+  async handleEvent(event: Stripe.Event) {
+    // This is the expected event type. This guarentees our type cast of
+    // event.data.object to be of type Stripe.Subscription
+    if (event.type !== "customer.subscription.created") {
+      throw new Error(`Unexpected Stripe event type: ${event.type}`);
     }
+
+    const newSubscription: Stripe.Subscription = event.data
+      .object as Stripe.Subscription;
+
+    // This may be unecessary but it guarentees we're working with the Stripe.Subscription object.
+    if (newSubscription.object !== "subscription") {
+      throw new Error(
+        `Unexpected inner stripe event object ${newSubscription.object}`
+      );
+    }
+
+    // Types suggest subscription.customer could be string | Stripe.Customer | Stripe.DeletedCustomer, so we handle all cases.
+    let customerId: string;
+    if (typeof newSubscription.customer !== "string") {
+      customerId = newSubscription.customer.id;
+    } else {
+      customerId = newSubscription.customer;
+    }
+
+    let existingStripeSubsciption;
+
+    try {
+      existingStripeSubsciption =
+        await this.stripeSubscriptionCacheRepo.getByCustomerAndSubscriptionId(
+          customerId,
+          newSubscription.id
+        );
+    } catch (error) {
+      console.error(
+        `Failed to get customer stripe subscription from database for stripe customer id ${customerId}`,
+        error
+      );
+    }
+
+    if (existingStripeSubsciption) {
+      console.error(
+        "Unexpectedly found an existing customer subscription in the database. Overwriting existing subscription. Existing subscription:",
+        existingStripeSubsciption
+      );
+
+      const databaseResponse = await this.stripeSubscriptionCacheRepo.update(
+        customerId,
+        {
+          subscription: newSubscription,
+        }
+      );
+
+      console.log("Successfully updated user subscription", databaseResponse);
+    } else {
+      // TODO: Replace this with a factory for creating the object so people can extend IStripeSubscription
+      const databaseResponse = await this.stripeSubscriptionCacheRepo.save({
+        objectVersion: 1,
+        apiVersion: event.api_version!,
+        customerId: customerId,
+        subscription: newSubscription,
+      });
+
+      console.log(
+        "Successfully saved new customer subscription",
+        databaseResponse
+      );
+    }
+  }
 }
