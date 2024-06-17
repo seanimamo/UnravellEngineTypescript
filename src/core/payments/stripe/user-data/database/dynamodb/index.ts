@@ -1,0 +1,1 @@
+export { BasicStripeUserDataDynamoDbRepo } from "./BasicStripeUserDataDynamoDbRepo";

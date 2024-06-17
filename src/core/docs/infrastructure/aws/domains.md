@@ -14,15 +14,17 @@ If you want www.coolSoftware.com to send people to your website, you'll have to 
 
 # Getting Started
 
-## Step 1: Obtaining a domain
+## Step 1: Purchasing a domain
 
 Domains need to be purchased from a domain name registrar. You can buy domains from websites like GoDaddy.com or even directly from AWS. If you choose to buy a domain directly from within your AWS account, you will be setup already.
 
 If you choose to buy a domain from a website other than AWS, we'll have to take a few simple extra steps to port it over to AWS.
 
-## Step 2a: Setting up a domain by purchasing one within your AWS account
+- ### 1a. How to purchase a domain in AWS: Coming Soon.
 
-Coming Soon - Buying a website domain using AWS Route 53
+## Step 2a: Setting up a domain by purchasing from AWS.
+
+When you buy a domain from AWS, you will automatically get a hosted zone assigned. Go ahead and delete this as we will recreate and maintain it using our Infrastructure as code.
 
 ## Step 2b: Setting up a domain that you obtained from outside your AWS account.
 

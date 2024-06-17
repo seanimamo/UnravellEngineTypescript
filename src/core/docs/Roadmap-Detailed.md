@@ -48,13 +48,23 @@ A detailed roadmap for Unravell features
 - [ ] [<span style="color:PaleGreen">Docs/Tutorial</span>] Tutorial for setting up Stripe Account
 - [ ] [<span style="color:cyan">Code</span>] Stripe Resource Factory interface
 
-  - ## One Time Payments
+  - ## One Time Payments (EXPERIMENTAL)
 
     - [ ] [<span style="color:cyan">Code</span>] Core One Time Payment (Invoice) Object interfaces
     - [ ] [<span style="color:cyan">Code</span>] Core One Time Payment (Invoice) Database interfaces
     - [ ] [<span style="color:cyan">Code</span>] Core One Time Payment (Invoice) Basic Dynamodb Class
 
-  - ## Subscriptions
+    - ## Stripe One-Time Payments Cache
+      - [ ] [<span style="color:cyan">Code</span>] Stripe One-time Payments Cache Object interfaces
+      - [ ] [<span style="color:cyan">Code</span>] Stripe One-time Payments Cache Database interfaces
+      - [ ] [<span style="color:cyan">Code</span>] Stripe One-time Payments Cache Basic Dynamodb Class
+      - [ ] [<span style="color:cyan">Code</span>] Core Stripe event handler webhook
+      - [ ] [<span style="color:Magenta">Infra</span>] Core Stripe event handler Internal API endpoint AWS Lambda
+      - [ ] [<span style="color:cyan">Code</span>] Basic implementation of Stripe one-time payment created webhook
+      - [ ] [<span style="color:cyan">Code</span>] Basic implementation of Stripe one-time payment updated created webhook
+      - [ ] [<span style="color:cyan">Code</span>] Basic implementation of Stripe one-time payment deleted created webhook
+
+  - ## Subscriptions (EXPERIMENTAL)
 
     - [ ] [<span style="color:cyan">Code</span>] Core Subscription Object interfaces
     - [ ] [<span style="color:cyan">Code</span>] Core Subscription Database interfaces
@@ -68,8 +78,8 @@ A detailed roadmap for Unravell features
       - [ ] [<span style="color:cyan">Code</span>] Core Stripe event handler webhook
       - [ ] [<span style="color:Magenta">Infra</span>] Core Stripe event handler Internal API endpoint AWS Lambda infrastructure
       - [x] [<span style="color:cyan">Code</span>] Basic implementation of Stripe subscription created webhook
-      - [x] [<span style="color:cyan">Code</span>] Basic implementation of Stripe updated created webhook
-      - [ ] [<span style="color:cyan">Code</span>] Basic implementation of Stripe deleted created webhook
+      - [x] [<span style="color:cyan">Code</span>] Basic implementation of Stripe subscription updated created webhook
+      - [ ] [<span style="color:cyan">Code</span>] Basic implementation of Stripe subscription deleted created webhook
         - ## Stripe Subscriptions Cache API's
         - [x] [<span style="color:cyan">Code</span>] Get Stripe Subscriptions by Customer Id Basic implementation
         - [ ] [<span style="color:Magenta">Infra</span>] Get Stripe Subscriptions by Customer Id AWS API Gateway Infrastructure
@@ -88,6 +98,7 @@ A detailed roadmap for Unravell features
 
 - [x] [<span style="color:cyan">Code</span>] Core Database Interfaces
 - [x] [<span style="color:cyan">Code</span>] DynamoDB Basic database repository abstract class
+- [ ] [<span style="color:cyan">Code</span>] EnableDynamoDB Basic database repository abstract class object compression
 - [x] [<span style="color:cyan">Code</span>] DynamoDB interfaces
 - [x] [<span style="color:cyan">Code</span>] Allow Dynamodb setup to use a Multi Table setup OR single table
 - [x] [<span style="color:Magenta">Infra</span>] AWS DynamoDB infrastructure CDK Stack
@@ -104,8 +115,8 @@ A detailed roadmap for Unravell features
 
 ## AWS Infrastructure
 
-- [ ] <span style="color:orange">In Progress</span> Refactor of original AWS CDK package for extensible reuse.
-- [ ] <span style="color:orange">In Progress</span> Create higher level "concepts" for the various stacks, e.g. database, emails, domains, api
+- [x] <span style="color:orange">In Progress</span> Refactor of original AWS CDK package for extensible reuse.
+- [x] <span style="color:orange">In Progress</span> Create higher level "concepts" for the various stacks, e.g. database, emails, domains, api
 - [ ] <span style="color:orange">In Progress</span> Documentation on how to setup AWS CDK for a new account.
 - [ ] <span style="color:orange">In Progress</span> Documentation on how to deploy AWS CDK stacks.
 - [ ] Documentation on how to checkout deployed API's.

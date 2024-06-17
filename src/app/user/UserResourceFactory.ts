@@ -3,15 +3,15 @@ import { ClassSerializer } from "../../core/database/serialization/ClassSerializ
 import {
   IUserResourceFactory,
   IUserPassword,
-  IUserStripeInfo,
   IUser,
   UserAuthType,
 } from "../../core/user/types";
-import { UserDynamoDbRepo } from "./database/UserDynamoDbRepo";
+import { UserRepo } from "./database/UserRepo";
 import { ISerializer, NaiveJsonSerializer } from "../../core/database";
-import { UserStripeInfoDynamoDbRepo } from "./database/UserStripeInfoDynamoDbRepo";
 import { User, UserPassword } from "./objects";
 import { AWS_INFRA_CONFIG } from "../infrastructure/aws/cdk/config";
+import { BasicStripeUserDataDynamoDbRepo } from "../../core/payments/stripe/user-data/database/dynamodb";
+import { IStripeUserData } from "../../core/payments/stripe/user-data";
 
 /**
  * Implementation of {@link IUserResourceFactory} for Unravell.
@@ -20,8 +20,8 @@ import { AWS_INFRA_CONFIG } from "../infrastructure/aws/cdk/config";
 export class UserResourceFactory implements IUserResourceFactory {
   private static USER_SERIALIZER = new ClassSerializer(User);
   private static PASSWORD_SERIALIZER = new ClassSerializer(UserPassword);
-  private static USER_STRIPE_INFO_SERIALIZER =
-    new NaiveJsonSerializer<IUserStripeInfo>();
+  private static STRIPE_USER__DATA_SERIALIZER =
+    new NaiveJsonSerializer<IStripeUserData>();
   /**
    * Dynamodb table name for users.
    */
@@ -71,12 +71,12 @@ export class UserResourceFactory implements IUserResourceFactory {
     return UserResourceFactory.PASSWORD_SERIALIZER;
   }
 
-  getUserStripeInfoSerializer(): ISerializer<IUserStripeInfo> {
-    return UserResourceFactory.USER_STRIPE_INFO_SERIALIZER;
+  getUserStripeDataSerializer(): ISerializer<IStripeUserData> {
+    return UserResourceFactory.STRIPE_USER__DATA_SERIALIZER;
   }
 
   getUserRepo() {
-    return new UserDynamoDbRepo(
+    return new UserRepo(
       this.dbClient,
       UserResourceFactory.USER_SERIALIZER,
       UserResourceFactory.PASSWORD_SERIALIZER,
@@ -84,10 +84,10 @@ export class UserResourceFactory implements IUserResourceFactory {
     );
   }
 
-  getUserStripeInfoRepo() {
-    return new UserStripeInfoDynamoDbRepo(
+  getUserStripeDataRepo() {
+    return new BasicStripeUserDataDynamoDbRepo(
       this.dbClient,
-      UserResourceFactory.USER_STRIPE_INFO_SERIALIZER,
+      UserResourceFactory.STRIPE_USER__DATA_SERIALIZER,
       // Dynamodb table name for user stripe info is stored in the same table as users.)
       UserResourceFactory.USER_REPO_TABLE_NAME
     );

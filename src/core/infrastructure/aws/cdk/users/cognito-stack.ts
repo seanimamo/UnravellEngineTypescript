@@ -212,7 +212,7 @@ export class CognitoStack extends Stack {
       {
         functionName: this.idBuilder.createStageBasedId("CognitoPreSignUp"),
         runtime: Runtime.NODEJS_16_X,
-        entry: path.join(__dirname, preSignupLambdaTriggerConfig.entry),
+        entry: preSignupLambdaTriggerConfig.entry,
         handler: preSignupLambdaTriggerConfig.handler,
         architecture:
           preSignupLambdaTriggerConfig.architecture ?? Architecture.ARM_64,
@@ -231,11 +231,11 @@ export class CognitoStack extends Stack {
         bundling: {
           minify: true,
           externalModules: [
-            "aws-sdk", // Use the 'aws-sdk' available in the Lambda runtime
+            "@aws-sdk", // Use the 'aws-sdk' available in the Lambda runtime
           ],
           esbuildArgs: {
             // Pass additional arguments to esbuild
-            // "--analyze": true
+            "--analyze": true,
           },
           ...preSignupLambdaTriggerConfig.bundling,
         },
@@ -256,7 +256,7 @@ export class CognitoStack extends Stack {
           "CognitoPostConfirmation"
         ),
         runtime: Runtime.NODEJS_16_X,
-        entry: path.join(__dirname, postConfirmationLambdaTriggerConfig.entry),
+        entry: postConfirmationLambdaTriggerConfig.entry,
         handler: postConfirmationLambdaTriggerConfig.handler,
         architecture:
           postConfirmationLambdaTriggerConfig.architecture ??
@@ -276,11 +276,11 @@ export class CognitoStack extends Stack {
         bundling: {
           minify: true,
           externalModules: [
-            "aws-sdk", // Use the 'aws-sdk' available in the Lambda runtime
+            "@aws-sdk", // Use the 'aws-sdk' available in the Lambda runtime
           ],
           esbuildArgs: {
             // Pass additional arguments to esbuild
-            // "--analyze": true
+            "--analyze": true,
           },
           ...postConfirmationLambdaTriggerConfig.bundling,
         },

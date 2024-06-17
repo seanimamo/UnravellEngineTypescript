@@ -17,7 +17,7 @@ export interface IStripeSubscriptionCacheRepo {
   ): Promise<IDatabaseResponse<any>>;
 
   getByCustomerAndSubscriptionId(
-    userId: string,
+    customerId: string,
     subscriptionId: string
   ): Promise<IDatabaseResponse<IStripeSubscriptionCache | null>>;
 

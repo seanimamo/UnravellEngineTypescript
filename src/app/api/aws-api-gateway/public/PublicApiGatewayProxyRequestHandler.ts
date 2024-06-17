@@ -13,7 +13,7 @@ export class PublicApiGatewayProxyRequestHandler extends BaseApiGatewayProxyRequ
   constructor(
     apiRequestProcessor: IApiGatewayProxyRequestProcessor<APIGatewayProxyCognitoAuthorizer>
   ) {
-    super(apiRequestProcessor, new Set(["*"]));
+    super(apiRequestProcessor, new Set());
   }
 
   // TODO: UNCOMMENT THIS AFTER VERIFYING WHAT CHROME EXTENSION ORIGIN LOOKS LIKE
@@ -32,7 +32,7 @@ export class PublicApiGatewayProxyRequestHandler extends BaseApiGatewayProxyRequ
   // }
   //   }
 
-  getResponseHeaders(): Record<string, string> {
+  createResponseHeaders(): Record<string, string> {
     return {
       // TODO: Update this to specify the allowed origins if it makes sense
       "Access-Control-Allow-Origin": "*",

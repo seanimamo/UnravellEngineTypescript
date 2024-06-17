@@ -5,7 +5,7 @@ import { IUser } from "../../types/IUser";
 /**
  * Core interface for a database repository that can execute CRUD operations for {@link IUser}'s
  *
- * @remarks - This is designed to be database agnostic, meaning it can be implemented most types of databases.
+ * @remarks - This is designed to be database agnostic, meaning it can be implemented by most types of databases.
  */
 export interface IUserRepo {
   save(user: IUser): Promise<IDatabaseResponse<any>>;

@@ -1,10 +1,12 @@
 import { PreSignUpTriggerEvent } from "aws-lambda";
 import { ApiError, InvalidRequestApiError } from "../../../../../api/ApiError";
 import { DataValidationError, DataValidator } from "../../../../../util";
-import { IUserResourceFactory, IUserStripeInfo } from "../../../../types";
+import { IUser, IUserResourceFactory } from "../../../../types";
 import { ICognitoPreSignUpWebhook } from ".";
-import { IUserRepo, IUserStripeInfoRepo } from "../../../../database/types";
+import { IUserRepo } from "../../../../database/types";
+import { IStripeUserDataRepo } from "../../../../../payments/stripe/user-data/database";
 import Stripe from "stripe";
+import { IStripeUserData } from "../../../../../payments/stripe/user-data";
 
 /**
  * This is a basic implementation of {@link ICognitoPreSignUpWebhook} which has logic for
@@ -12,18 +14,23 @@ import Stripe from "stripe";
  * It does not include the logic for AWS Lambda.
  *
  * The logic for this is intended to be wrapped within the expected AWS lambda function handler {@link CognitoPreSignUpTriggerLambda}
+ *
  */
 export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
   static dataValidator = new DataValidator();
   private readonly userRepo: IUserRepo;
-  private readonly userStripeInfoRepo: IUserStripeInfoRepo;
+  private readonly userStripeDataRepo: IStripeUserDataRepo;
 
   constructor(
     private readonly userFactory: IUserResourceFactory,
-    private readonly stripeClient: Stripe
+    /**
+     * When a {@link Stripe} client is provided, the webhook will create a new stripe customer
+     * for the user as save the customer data {@link IStripeUserData} to the database.
+     */
+    private readonly stripeClient?: Stripe
   ) {
     this.userRepo = this.userFactory.getUserRepo();
-    this.userStripeInfoRepo = this.userFactory.getUserStripeInfoRepo();
+    this.userStripeDataRepo = this.userFactory.getUserStripeDataRepo();
   }
 
   /**
@@ -113,20 +120,27 @@ export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
     await this.userRepo.save(user);
     console.log(`successfully created and saved new user ${userName}`);
 
+    if (this.stripeClient) {
+      await this.createStripeCustomer(user, this.stripeClient);
+    }
+    return;
+  }
+
+  async createStripeCustomer(user: IUser, stripeClient: Stripe) {
     const stripeName = user.id;
     let stripeCustomer: Stripe.Customer;
 
     try {
       // Create Customer from body params.
       const params: Stripe.CustomerCreateParams = {
-        email: email,
+        email: user.email,
         name: stripeName,
         metadata: {
-          customAppUserId: userName,
+          externalUserId: user.id,
         },
       };
 
-      stripeCustomer = await this.stripeClient.customers.create(params);
+      stripeCustomer = await stripeClient.customers.create(params);
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -138,17 +152,15 @@ export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
 
     const customerId = stripeCustomer.id;
 
-    const stripeInfo: IUserStripeInfo = {
+    const userStripeData: IStripeUserData = {
       customerId: customerId,
-      userId: userName,
+      userId: user.id,
     };
 
-    await this.userStripeInfoRepo.save(stripeInfo);
+    await this.userStripeDataRepo.save(userStripeData);
     console.log(
-      `successfully created and saved new stripe customer with id ${customerId} for user with id ${userName}`
+      `successfully created and saved new stripe customer with id ${customerId} for user with id ${user.id}`
     );
-
-    return;
   }
 }
 

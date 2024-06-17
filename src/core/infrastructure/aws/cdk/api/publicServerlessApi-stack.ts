@@ -65,6 +65,8 @@ export class PublicServerlessApiStack extends Stack {
   ) {
     super(scope, id, props);
 
+    this.idBuilder = props.idBuilder;
+
     const restApiName = this.idBuilder.createStageBasedId(props.appDisplayName);
     const restApi = new apiGateway.RestApi(this, restApiName, {
       restApiName: restApiName,
@@ -181,10 +183,7 @@ export class PublicServerlessApiStack extends Stack {
 
     const getUserByUsername = new NodejsFunction(this, apiLambdaId, {
       functionName: apiLambdaId,
-      entry: path.join(
-        __dirname,
-        lambdaApiEndpointConfig.getUserByUserId.entry
-      ),
+      entry: lambdaApiEndpointConfig.getUserByUserId.entry,
       handler: lambdaApiEndpointConfig.getUserByUserId.handler,
       initialPolicy: getUserByUsernameIamPermissions,
       ...this.getApiLambdaProps(lambdaApiEndpointConfig.getUserByUserId),
@@ -215,7 +214,7 @@ export class PublicServerlessApiStack extends Stack {
       bundling: {
         minify: true,
         externalModules: [
-          "aws-sdk", // Use the 'aws-sdk' available in the Lambda runtime
+          "@aws-sdk", // We can use the '@aws-sdk' node module already available in the Lambda runtime
         ],
         esbuildArgs: {
           // Pass additional arguments to esbuild

@@ -36,13 +36,15 @@ export abstract class BasicStripeSubscriptionCacheDynamoDbRepo
    * compress the data means that other than the keys & GSI's, the rest of the data will be
    * stringified under a single asttribute in Dynamodb which reduces memory as compared to dynamodb JSON.
    */
-  private readonly compress = true;
+  private readonly compress: boolean;
   constructor(
     client: DynamoDBClient,
     serializer: ISerializer<IStripeSubscriptionCache>,
-    tableName: string
+    tableName: string,
+    compress: boolean
   ) {
     super(client, serializer, tableName);
+    this.compress = compress;
   }
 
   /**
@@ -93,16 +95,21 @@ export abstract class BasicStripeSubscriptionCacheDynamoDbRepo
 
   async getByCustomerAndSubscriptionId(
     customerId: string,
-    subscriptionId: string
+    subscriptionId?: string
   ) {
+    const sortKeyParams = [
+      BasicStripeSubscriptionCacheDynamoDbRepo.DB_IDENTIFIER,
+    ];
+
+    if (subscriptionId !== undefined) {
+      sortKeyParams.push(subscriptionId);
+    }
+
     return await super.getUniqueItemByCompositeKey({
       primaryKey: customerId,
       sortKey: {
-        value: KeyFactory.create([
-          BasicStripeSubscriptionCacheDynamoDbRepo.DB_IDENTIFIER,
-          subscriptionId,
-        ]),
-        conditionExpressionType: "COMPLETE",
+        value: KeyFactory.create(sortKeyParams),
+        conditionExpressionType: "BEGINS_WITH",
       },
       compress: this.compress,
     });

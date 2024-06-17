@@ -153,9 +153,5 @@ export class User implements IUser {
         .isClass(UserBanStatus);
       UserBanStatus.validate(user.banStatus);
     }
-
-    // Optional properties
   }
-
-  static create(email: string, uuid: string, rawTextPassword: string) {}
 }

@@ -9,6 +9,7 @@ import { ApiError, UnauthorizedApiError } from "../../ApiError";
 import { IApiRequestProcessor } from "../IApiRequestProcessor";
 import { IApiRequest } from "../IApiRequest";
 import { IApiResponse } from "../IApiResponse";
+import { Stage } from "../../../infrastructure";
 
 export interface IApiGatewayProxyRequestProcessor<TApiGatewayAuthorizerContext>
   extends IApiRequestProcessor<
@@ -55,10 +56,10 @@ export abstract class BaseApiGatewayProxyRequestHandler<
   }
 
   /**
-   * Gets the HTTP headers to be included on the API response.
+   * Creates the HTTP headers to be included on the API response.
    * @remarks Update this to specify more specifc allowed origins such as your frontend domain if needed
    */
-  abstract getResponseHeaders(): Record<string, string>;
+  abstract createResponseHeaders(): Record<string, string>;
 
   handleRequest: Handler<
     APIGatewayProxyEventBase<TApiGatewayAuthorizerContext>,
@@ -110,7 +111,7 @@ export abstract class BaseApiGatewayProxyRequestHandler<
         statusCode: response.statusCode,
         body:
           response.body === null ? undefined : JSON.stringify(response.body!),
-        headers: this.getResponseHeaders(),
+        headers: this.createResponseHeaders(),
       };
     } catch (error) {
       if (error instanceof ApiError) {
@@ -123,7 +124,7 @@ export abstract class BaseApiGatewayProxyRequestHandler<
               message: error.message,
             },
           }),
-          headers: this.getResponseHeaders(),
+          headers: this.createResponseHeaders(),
         };
       }
       console.error("Unexpected error occured while processing request", error);

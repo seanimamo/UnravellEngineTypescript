@@ -95,36 +95,28 @@ export class CoreAwsInfraBuilder {
 
   buildAppInfra(config: {
     sharedGlobalInfra: SharedGlobalInfraConfig;
-    stageRegionInfra: {
+    stageInfra: {
       stage: Stage;
-      sharedInfra: {
-        database: CreateDatabaseInfraConfig;
-        userAuth: CreateUserAuthInfraProps;
+      database: CreateDatabaseInfraConfig;
+      userAuth: CreateUserAuthInfraProps;
+      email: {
+        region: string;
       };
-      uniqueInfra: {
-        api: CreateApiInfraProps;
-      };
+      api: CreateApiInfraProps;
     };
   }) {
-    const { sharedGlobalInfra, stageRegionInfra } = config;
+    const { sharedGlobalInfra, stageInfra } = config;
 
     this.composeSharedGlobalInfra(sharedGlobalInfra);
 
-    const sharedStageRegionInfra = this.composeSharedStageRegionInfra(
-      stageRegionInfra.stage,
-      {
-        sharedGlobalInfra: sharedGlobalInfra,
-        database: stageRegionInfra.sharedInfra.database,
-        userAuth: stageRegionInfra.sharedInfra.userAuth,
-      }
-    );
-
-    this.composeUniqueStageRegionInfra({
-      stage: stageRegionInfra.stage,
+    this.composeStageRegionInfra(stageInfra.stage, {
       sharedGlobalInfra: sharedGlobalInfra,
-      cognitoUserPool: sharedStageRegionInfra.userAuthInfra.cognitoUserPool,
-      userDatabaseTableData: sharedStageRegionInfra.databaseInfra.userTableData,
-      api: stageRegionInfra.uniqueInfra.api,
+      database: stageInfra.database,
+      userAuth: stageInfra.userAuth,
+      email: {
+        region: stageInfra.email.region,
+      },
+      api: stageInfra.api,
     });
   }
 
@@ -154,21 +146,26 @@ export class CoreAwsInfraBuilder {
     return baseDomainDnsInfra;
   }
 
-  composeSharedStageRegionInfra(
+  composeStageRegionInfra(
     stage: Stage,
     config: {
       sharedGlobalInfra: SharedGlobalInfraConfig;
       database: CreateDatabaseInfraConfig;
       userAuth: CreateUserAuthInfraProps;
+      email: {
+        region: string;
+      };
+      api: CreateApiInfraProps;
     }
   ) {
     const databaseInfra = this.createDatabaseInfra(stage, config.database);
 
     let emailInfra;
+    // In production we want emails to come from our base domain e.g. no-reply@myApp.com, in non prod we instead the one suffixed
+    // with stages such as no-reply@prod.myApp.com.
+    // It's important to create unique email identity for non prod stages so we don't ruin our email reputation stats with tests.
     if (stage === Stage.PROD) {
-      emailInfra = this.createEmailInfra(stage, {
-        // In production we want emails to come from your base domain e.g. no-reply@myApp.com instead of the one suffixed
-        // with stages such as no-reply@prod.myApp.com
+      emailInfra = this.createEmailInfra(stage, config.email.region, {
         appDomain: config.sharedGlobalInfra.dns.appBaseDomain,
       });
     } else {
@@ -176,8 +173,7 @@ export class CoreAwsInfraBuilder {
         stage,
         config.sharedGlobalInfra
       );
-      // It's important to create unique email identity for non prod stages so we don't ruin our email reputation stats with tests.
-      emailInfra = this.createEmailInfra(stage, {
+      emailInfra = this.createEmailInfra(stage, config.email.region, {
         appDomain: basicDnsInfra.appDomainName,
       });
     }
@@ -191,28 +187,25 @@ export class CoreAwsInfraBuilder {
       config.userAuth
     );
 
+    const publicApiInfra = this.createPublicApiInfra(
+      stage,
+      config.api.publicApi.region,
+      {
+        dependantInfra: {
+          sharedGlobalInfra: config.sharedGlobalInfra,
+          cognitoUserPool: userAuthInfra.cognitoStack.userPool,
+          userDatabaseTableData: databaseInfra.userTableData,
+        },
+        apiConfig: config.api,
+      }
+    );
+
     return {
       databaseInfra: databaseInfra,
       emailInfra: emailInfra,
-      userAuthInfra: {
-        cognitoUserPool: userAuthInfra.cognitoStack.userPool,
-      },
+      userAuthInfra: userAuthInfra,
+      publicApiInfra,
     };
-  }
-
-  composeUniqueStageRegionInfra(config: {
-    stage: Stage;
-    sharedGlobalInfra: SharedGlobalInfraConfig;
-    cognitoUserPool: IUserPool;
-    userDatabaseTableData: IDatabaseTableData;
-    api: CreateApiInfraProps;
-  }) {
-    this.createPublicApiInfra(config.stage, config.api.publicApi.region, {
-      sharedGlobalInfra: config.sharedGlobalInfra,
-      cognitoUserPool: config.cognitoUserPool,
-      userDatabaseTableData: config.userDatabaseTableData,
-      apiConfig: config.api,
-    });
   }
 
   /**
@@ -278,7 +271,7 @@ export class CoreAwsInfraBuilder {
     }
   }
 
-  createEmailInfra(stage: Stage, props: CreateEmailInfraProps) {
+  createEmailInfra(stage: Stage, region: string, props: CreateEmailInfraProps) {
     const infraResourceIdBuilder = new InfraResourceIdBuilder(
       this.appName,
       stage
@@ -288,6 +281,7 @@ export class CoreAwsInfraBuilder {
       stackName: sesStackName,
       env: {
         account: this.awsAccountId,
+        region: region,
       },
       terminationProtection: true,
       idBuilder: infraResourceIdBuilder,
@@ -322,6 +316,7 @@ export class CoreAwsInfraBuilder {
         account: this.awsAccountId,
       },
       terminationProtection: true,
+      crossRegionReferences: true,
       stage: stage,
       idBuilder: infraResourceIdBuilder,
       userDynamoDbTable: dependantInfra.databaseStack.userTableData,
@@ -342,12 +337,16 @@ export class CoreAwsInfraBuilder {
     stage: Stage,
     region: string,
     props: {
-      sharedGlobalInfra: SharedGlobalInfraConfig;
-      cognitoUserPool: IUserPool;
-      userDatabaseTableData: IDatabaseTableData;
+      dependantInfra: {
+        sharedGlobalInfra: SharedGlobalInfraConfig;
+        cognitoUserPool: IUserPool;
+        userDatabaseTableData: IDatabaseTableData;
+      };
       apiConfig: CreateApiInfraProps;
     }
   ) {
+    const { dependantInfra, apiConfig } = props;
+
     const infraResourceIdBuilder = new InfraResourceIdBuilder(
       this.appName,
       stage
@@ -358,22 +357,23 @@ export class CoreAwsInfraBuilder {
     let publicApiDomainName;
 
     publicApiDomainName = `${stage.toString().toLowerCase()}.${region}.api.${
-      props.sharedGlobalInfra.dns.appBaseDomain
+      dependantInfra.sharedGlobalInfra.dns.appBaseDomain
     }`;
 
     return new PublicServerlessApiStack(this.cdkApp, publicApiStackName, {
       stackName: publicApiStackName,
       env: {
         account: this.awsAccountId,
+        region: region,
       },
       terminationProtection: true,
+      crossRegionReferences: true,
       appDisplayName: this.appName,
       idBuilder: infraResourceIdBuilder,
       apiDomainName: publicApiDomainName,
-      cognitoUserPool: props.cognitoUserPool,
-      userDatabaseTableData: props.userDatabaseTableData,
-      lambdaApiEndpointConfig:
-        props.apiConfig.publicApi.lambdaApiEndpointConfig,
+      cognitoUserPool: dependantInfra.cognitoUserPool,
+      userDatabaseTableData: dependantInfra.userDatabaseTableData,
+      lambdaApiEndpointConfig: apiConfig.publicApi.lambdaApiEndpointConfig,
     });
   }
 }

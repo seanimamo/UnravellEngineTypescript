@@ -2,16 +2,13 @@ import {
   InternalServerApiError,
   InvalidRequestApiError,
 } from "../../../../ApiError";
-import {
-  IUserRepo,
-  IUserStripeInfoRepo,
-} from "../../../../../user/database/types";
 import { DataValidator, DataValidationError } from "../../../../../util";
 import { IPaginatedApiResponse } from "../../../IApiResponse";
 import { IApiRequestProcessor } from "../../../IApiRequestProcessor";
 import { IApiRequest } from "../../../IApiRequest";
 import { IStripeSubscriptionCacheRepo } from "../../../../../payments/stripe/subscription-cache/database";
 import { IStripeSubscriptionCache } from "../../../../../payments/stripe/subscription-cache";
+import { IStripeUserDataRepo } from "../../../../../payments/stripe/user-data/database";
 
 export interface IListUserStripeSubcriptionApiRequest extends IApiRequest {
   userId: string;
@@ -46,7 +43,7 @@ export abstract class BasicListUserStripeSubcriptionsApi<
   private readonly dataValidator = new DataValidator();
 
   constructor(
-    private readonly userStripeInfoRepo: IUserStripeInfoRepo,
+    private readonly userStripeDataRepo: IStripeUserDataRepo,
     private readonly stripeSubscriptionRepo: IStripeSubscriptionCacheRepo
   ) {}
 
@@ -99,12 +96,12 @@ export abstract class BasicListUserStripeSubcriptionsApi<
   async processRequest(
     request: IListUserStripeSubcriptionApiRequest
   ): Promise<IListUserStripeSubcriptionApiResponse> {
-    const userStripeInfoResponse = await this.userStripeInfoRepo.getByUserId(
+    const userStripeDataResponse = await this.userStripeDataRepo.getByUserId(
       request.userId
     );
-    const userStripeInfo = userStripeInfoResponse.data;
+    const userStripeData = userStripeDataResponse.data;
 
-    if (userStripeInfo === null) {
+    if (userStripeData === null) {
       console.error("User unexpectedly does not have a stripe customer id");
       throw new InternalServerApiError(
         "User unexpectedly does not have a stripe customer id"
@@ -113,7 +110,7 @@ export abstract class BasicListUserStripeSubcriptionsApi<
 
     const listStripeSubscriptionsResponse =
       await this.stripeSubscriptionRepo.listByCustomerId(
-        userStripeInfo.customerId
+        userStripeData.customerId
       );
 
     return {
