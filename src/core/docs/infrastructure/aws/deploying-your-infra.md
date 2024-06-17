@@ -49,8 +49,8 @@ AWS CDK (Cloud Developer Kit) enables us to write our infrastructure as code and
 
   AWS CDK needs to have some permissions bootstrapped in each region within your account you intend to deploy to. in order to function. Run the command `cdk bootstrap --profile <your_profile_name> <your_aws_accountId>/<region>` replacing `<your_profile_name>` with the name of the profile you made in step 2b as well as putting in your AWS account id and the region to bootstrap in.
 
-  - I recommend boostrapping in us-east-1. This region typically has the latest and greatest features.
-  - Example complete command `cdk boostrap --profile myapp-cdk-user 12345678/us-east-1`
+  - I recommend boostrapping in us-east-2. This region is in the middle of the country (ohio) so it's a nice middleground for latency between the east and west coasts.
+  - Example complete command `cdk bootstrap --profile myapp-cdk-user 12345678/us-east-2`
   - [More info on the CDK CLI](https://docs.aws.amazon.com/cdk/v2/guide/cli.html#cli-bootstrap)
 
 Done! You've completed the necessary setup for AWS CDK and are ready to begin configuring your app for deployment.
@@ -77,3 +77,6 @@ replacing "Unravell" with the name of your app.
 - [Read more with aws official documentation](https://docs.aws.amazon.com/cdk/v2/guide/work-with-cdk-typescript.html#typescript-running)
 
 ## Step 5: Deploy your infrastructure templates
+
+    1. Deploy Prod-<yourAppname>-Shared-Route53 stack
+    2. IF you purchased your domain name outside of AWS, set the name servers on the external provider to the ones within the AWS HostedZone created by route53 stack deployed in step 1.

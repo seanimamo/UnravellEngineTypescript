@@ -14,6 +14,11 @@ export interface SharedGlobalInfraConfig {
      * For example myApp.com
      */
     appBaseDomain: string;
+    /**
+     * DNS infrastructure has no region because it is global in AWS. However, the CDK stack that deploys these
+     * DNS resources will still live in a specific region which is what this variable controls.
+     */
+    stackRegion: string;
   };
 }
 
@@ -137,6 +142,7 @@ export class CoreAwsInfraBuilder {
         stackName: route53StackName,
         env: {
           account: this.awsAccountId,
+          region: config.dns.stackRegion,
         },
         idBuilder: infraResourceIdBuilder,
         appDomain: config.dns.appBaseDomain,
@@ -230,6 +236,7 @@ export class CoreAwsInfraBuilder {
       stackName: route53StackName,
       env: {
         account: this.awsAccountId,
+        region: sharedGlobalInfra.dns.stackRegion,
       },
       terminationProtection: true,
       idBuilder: infraResourceIdBuilder,
