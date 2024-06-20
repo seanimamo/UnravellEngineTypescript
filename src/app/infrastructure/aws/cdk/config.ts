@@ -1,3 +1,5 @@
+import "dotenv/config"; // This enables to access a local .env file
+
 export const AWS_INFRA_CONFIG = {
   /**
    * The name of your Web application
@@ -7,11 +9,11 @@ export const AWS_INFRA_CONFIG = {
   /**
    * The region the infrastructure will be deployed in
    */
-  deploymentRegion: "us-east-1",
+  deploymentRegion: "us-east-2",
   /**
    * Your AWS account id
    */
-  awsAccountId: "471112810937",
+  awsAccountId: process.env.AWS_ACCOUNT_ID!,
   /**
    * DNS Related configurations
    */

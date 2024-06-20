@@ -19,8 +19,9 @@ import { Construct } from "constructs";
 import * as path from "path";
 import { Stage } from "../../../common/Stage";
 import { InfraResourceIdBuilder } from "../../../common/InfraResourceIdBuilder";
-import { DynamoTableData } from "../database/dynamodb-stack";
+import { DynamoTableData, isDynamoTableData } from "../database/dynamodb-stack";
 import * as ses from "aws-cdk-lib/aws-ses";
+import { IDatabaseTableData } from "../database";
 
 // TODO: Update this stack to allow more than one type of database.
 type CognitoStackProps = {
@@ -33,9 +34,9 @@ type CognitoStackProps = {
    */
   idBuilder: InfraResourceIdBuilder;
   /**
-   * DynamoDB table data necessary to give pre and post signup lambdas database access.
+   * Database table data necessary to give pre and post signup lambdas database access.
    */
-  userDynamoDbTable: DynamoTableData;
+  userDbTable: IDatabaseTableData;
   /**
    * The display name of your application, for example, "NoteTaker", "WeatherChecker", etc.
    */
@@ -50,7 +51,7 @@ type CognitoStackProps = {
    * This will be necessary so we can automatically send emails using cognito
    * for various auth flows such as password resets from your own url.
    */
-  noReplyEmailInfra: {
+  emailInfra: {
     sesIdentity: ses.EmailIdentity;
     emailAddress: string;
   };
@@ -87,7 +88,6 @@ export class CognitoStack extends Stack {
   private readonly stage: Stage;
 
   private idBuilder: InfraResourceIdBuilder;
-  private userDynamoDbTable: DynamoTableData;
   private appDisplayName: string;
   private frontEndVerifyAccountCodeURL: string;
 
@@ -96,12 +96,11 @@ export class CognitoStack extends Stack {
 
     this.stage = props.stage;
     this.idBuilder = props.idBuilder;
-    this.userDynamoDbTable = props.userDynamoDbTable;
     this.appDisplayName = props.appDisplayName;
     this.frontEndVerifyAccountCodeURL = props.frontEndVerifyAccountCodeURL;
     this.userPool = this.createCognitoUserPool(
-      props.noReplyEmailInfra.sesIdentity,
-      props.noReplyEmailInfra.emailAddress
+      props.emailInfra.sesIdentity,
+      props.emailInfra.emailAddress
     );
     this.addUserPoolLambdaTriggers(this.userPool, props);
     this.createUserPoolUIClient(this.userPool);
@@ -154,22 +153,10 @@ export class CognitoStack extends Stack {
       mfa: Mfa.OPTIONAL,
     });
 
-    // Unecessary, only needed for the hosted UI.
-    // cognitoUserPool.addDomain(
-    //     this.idBuilder.createStackId("UserPoolDomain"),
-    //     {
-    //         cognitoDomain: {
-    //             domainPrefix: this.idBuilder
-    //                 .createStageId("unravell-email")
-    //                 .toLowerCase(),
-    //         },
-    //     }
-    // );
-
     const cfnUserPool = cognitoUserPool.node.defaultChild as CfnUserPool;
 
     /**
-     * This makes cognitos automatic emails get sent from our own custom app email domain.
+     * This enables cognitos to send its automatic emails using our own custom app email domain.
      */
     cfnUserPool.emailConfiguration = {
       emailSendingAccount: "DEVELOPER",
@@ -204,7 +191,13 @@ export class CognitoStack extends Stack {
     cognitoUserPool: UserPool,
     props: CognitoStackProps
   ) {
-    const { preSignupLambdaTriggerConfig } = props;
+    const { preSignupLambdaTriggerConfig, userDbTable } = props;
+
+    if (!isDynamoTableData(userDbTable)) {
+      throw new Error(
+        "Only dynamodb is supported for user database table at this time."
+      );
+    }
 
     const preSignUpLambdaTrigger = new NodejsFunction(
       this,
@@ -219,23 +212,21 @@ export class CognitoStack extends Stack {
         memorySize: preSignupLambdaTriggerConfig.memorySize ?? 1024, // This memory amount is overkill but will minimize cold start time
         environment: {
           STAGE: props.stage,
+          USER_DB_TABLE_NAME: userDbTable.tableName,
           ...preSignupLambdaTriggerConfig.environment,
         },
         initialPolicy: [
           this.createDynamoAllowPolicyForAllIndexes(
             ["dynamodb:PutItem", "dynamodb:Query"],
-            props
+            userDbTable
           ),
           ...(preSignupLambdaTriggerConfig.initialPolicy ?? []),
         ],
         bundling: {
           minify: true,
-          externalModules: [
-            "@aws-sdk", // Use the 'aws-sdk' available in the Lambda runtime
-          ],
           esbuildArgs: {
             // Pass additional arguments to esbuild
-            "--analyze": true,
+            // "--analyze": true,
           },
           ...preSignupLambdaTriggerConfig.bundling,
         },
@@ -264,23 +255,21 @@ export class CognitoStack extends Stack {
         memorySize: postConfirmationLambdaTriggerConfig.memorySize ?? 1024, // This memory amount is overkill but will minimize cold start time
         environment: {
           STAGE: props.stage,
-          ...postConfirmationLambdaTriggerConfig.environment,
+          USER_DB_TABLE_NAME: userDbTable.tableName,
+          ...preSignupLambdaTriggerConfig.environment,
         },
         initialPolicy: [
           this.createDynamoAllowPolicyForAllIndexes(
             ["dynamodb:UpdateItem", "dynamodb:Query"],
-            props
+            userDbTable
           ),
           ...(postConfirmationLambdaTriggerConfig.initialPolicy ?? []),
         ],
         bundling: {
           minify: true,
-          externalModules: [
-            "@aws-sdk", // Use the 'aws-sdk' available in the Lambda runtime
-          ],
           esbuildArgs: {
             // Pass additional arguments to esbuild
-            "--analyze": true,
+            // "--analyze": true,
           },
           ...postConfirmationLambdaTriggerConfig.bundling,
         },
@@ -294,16 +283,14 @@ export class CognitoStack extends Stack {
 
   private createDynamoAllowPolicyForAllIndexes(
     actions: string[],
-    props: CognitoStackProps
+    userDbTableData: DynamoTableData
   ) {
     return new PolicyStatement({
       actions,
       effect: Effect.ALLOW,
       resources: [
-        props.userDynamoDbTable.table.tableArn,
-        ...props.userDynamoDbTable.globalSecondaryIndexes.map(
-          (index) => index.arn
-        ),
+        userDbTableData.table.tableArn,
+        ...userDbTableData.globalSecondaryIndexes.map((index) => index.arn),
       ],
     });
   }

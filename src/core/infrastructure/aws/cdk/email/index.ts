@@ -1,1 +1,1 @@
-export { SesStack } from "./ses-stack";
+export { EmailStack } from "./email-stack";

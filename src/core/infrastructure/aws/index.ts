@@ -1,2 +1,2 @@
-export { SesStack, SesStackProps } from "./cdk/email/ses-stack";
-export { SimpleDnsStack, SimpleDnsStackProps } from "./cdk/dns/dns-stack";
+export { EmailStack, EmailStackProps } from "./cdk/email/email-stack";
+export { SingleDomainDnsStack, SubdomainDnsStack } from "./cdk/dns/dns-stack";

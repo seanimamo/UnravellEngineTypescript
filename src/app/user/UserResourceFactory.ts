@@ -25,8 +25,7 @@ export class UserResourceFactory implements IUserResourceFactory {
   /**
    * Dynamodb table name for users.
    */
-  private static USER_REPO_TABLE_NAME =
-    AWS_INFRA_CONFIG.database.tables.user.tableName;
+  private static USER_REPO_TABLE_NAME = process.env.USER_DB_TABLE_NAME;
 
   constructor(private readonly dbClient: DynamoDBClient) {
     this.dbClient = dbClient;
@@ -41,12 +40,12 @@ export class UserResourceFactory implements IUserResourceFactory {
     textPassword: string;
     email: string;
     authType: UserAuthType;
-    firstName?: string;
-    lastName?: string;
+    firstName: string;
+    lastName: string;
   }): User {
-    const user = User.builder({
+    const user = new User({
       objectVersion: 1,
-      userName: params.email.split("@")[0],
+      userName: params.id,
       id: params.id,
       password: UserPassword.fromPlainTextPassword(params.textPassword),
       email: params.email,
@@ -80,7 +79,7 @@ export class UserResourceFactory implements IUserResourceFactory {
       this.dbClient,
       UserResourceFactory.USER_SERIALIZER,
       UserResourceFactory.PASSWORD_SERIALIZER,
-      UserResourceFactory.USER_REPO_TABLE_NAME
+      UserResourceFactory.USER_REPO_TABLE_NAME!
     );
   }
 
@@ -89,7 +88,7 @@ export class UserResourceFactory implements IUserResourceFactory {
       this.dbClient,
       UserResourceFactory.STRIPE_USER__DATA_SERIALIZER,
       // Dynamodb table name for user stripe info is stored in the same table as users.)
-      UserResourceFactory.USER_REPO_TABLE_NAME
+      UserResourceFactory.USER_REPO_TABLE_NAME!
     );
   }
 }

@@ -1,3 +1,4 @@
 node_modules
 cdk.out
 build
+.env

@@ -1,11 +1,13 @@
 import { InfraResourceIdBuilder, Stage } from "../..";
-import { SesStack, SimpleDnsStack } from "..";
+import { EmailStack, SingleDomainDnsStack, SubdomainDnsStack } from "..";
 import * as cdk from "aws-cdk-lib";
 import { DynamoDBStack, IDatabaseTableData } from "./database";
 import { CognitoStack } from "./users";
 import { IUserPool } from "aws-cdk-lib/aws-cognito";
 import { PublicServerlessApiStack } from "./api";
 import { NodejsFunctionProps } from "aws-cdk-lib/aws-lambda-nodejs";
+import * as route53 from "aws-cdk-lib/aws-route53";
+import * as ses from "aws-cdk-lib/aws-ses";
 
 export interface SharedGlobalInfraConfig {
   dns: {
@@ -63,7 +65,7 @@ export interface CreateUserAuthInfraProps {
 }
 
 export interface CreateEmailInfraProps {
-  appDomain: string;
+  domainHostedZone: route53.HostedZone;
 }
 
 export interface CreateApiInfraProps {
@@ -110,18 +112,23 @@ export class CoreAwsInfraBuilder {
       api: CreateApiInfraProps;
     };
   }) {
-    const { sharedGlobalInfra, stageInfra } = config;
+    const sharedGlobalInfra = this.composeSharedGlobalInfra(
+      config.sharedGlobalInfra
+    );
 
-    this.composeSharedGlobalInfra(sharedGlobalInfra);
-
-    this.composeStageRegionInfra(stageInfra.stage, {
-      sharedGlobalInfra: sharedGlobalInfra,
-      database: stageInfra.database,
-      userAuth: stageInfra.userAuth,
-      email: {
-        region: stageInfra.email.region,
+    this.composeStageRegionInfra(config.stageInfra.stage, {
+      sharedGlobalInfra: {
+        dns: {
+          parentDomainHostedZone: sharedGlobalInfra.dns.parentDomainHostedZone,
+          region: config.sharedGlobalInfra.dns.stackRegion,
+        },
       },
-      api: stageInfra.api,
+      database: config.stageInfra.database,
+      userAuth: config.stageInfra.userAuth,
+      email: {
+        region: config.stageInfra.email.region,
+      },
+      api: config.stageInfra.api,
     });
   }
 
@@ -135,7 +142,7 @@ export class CoreAwsInfraBuilder {
     const route53StackName = infraResourceIdBuilder.createStageBasedId(
       "Shared-Route53Stack"
     );
-    const baseDomainDnsInfra = new SimpleDnsStack(
+    const parentDomainDnsInfra = new SingleDomainDnsStack(
       this.cdkApp,
       route53StackName,
       {
@@ -144,18 +151,29 @@ export class CoreAwsInfraBuilder {
           account: this.awsAccountId,
           region: config.dns.stackRegion,
         },
+      },
+      {
         idBuilder: infraResourceIdBuilder,
         appDomain: config.dns.appBaseDomain,
       }
     );
 
-    return baseDomainDnsInfra;
+    return {
+      dns: {
+        parentDomainHostedZone: parentDomainDnsInfra.domainHostedZone,
+      },
+    };
   }
 
   composeStageRegionInfra(
     stage: Stage,
     config: {
-      sharedGlobalInfra: SharedGlobalInfraConfig;
+      sharedGlobalInfra: {
+        dns: {
+          parentDomainHostedZone: route53.HostedZone;
+          region: string;
+        };
+      };
       database: CreateDatabaseInfraConfig;
       userAuth: CreateUserAuthInfraProps;
       email: {
@@ -167,27 +185,35 @@ export class CoreAwsInfraBuilder {
     const databaseInfra = this.createDatabaseInfra(stage, config.database);
 
     let emailInfra;
+    let domainHostedZone: route53.HostedZone;
     // In production we want emails to come from our base domain e.g. no-reply@myApp.com, in non prod we instead the one suffixed
     // with stages such as no-reply@prod.myApp.com.
     // It's important to create unique email identity for non prod stages so we don't ruin our email reputation stats with tests.
     if (stage === Stage.PROD) {
       emailInfra = this.createEmailInfra(stage, config.email.region, {
-        appDomain: config.sharedGlobalInfra.dns.appBaseDomain,
+        domainHostedZone: config.sharedGlobalInfra.dns.parentDomainHostedZone,
       });
+      domainHostedZone = config.sharedGlobalInfra.dns.parentDomainHostedZone;
     } else {
-      const basicDnsInfra = this.createBasicDnsInfra(
-        stage,
-        config.sharedGlobalInfra
-      );
+      const subdomainDnsInfra = this.createSubDomainInfra(stage, {
+        hostedZone: config.sharedGlobalInfra.dns.parentDomainHostedZone,
+        region: config.sharedGlobalInfra.dns.region,
+      });
+
+      domainHostedZone = subdomainDnsInfra.hostedZone;
+
       emailInfra = this.createEmailInfra(stage, config.email.region, {
-        appDomain: basicDnsInfra.appDomainName,
+        domainHostedZone: domainHostedZone,
       });
     }
 
     const userAuthInfra = this.createUserAuthInfra(
       stage,
       {
-        emailStack: emailInfra,
+        emailInfra: {
+          sesIdentity: emailInfra.domainSesIdentity,
+          emailAddress: `no-reply@${domainHostedZone.zoneName}`,
+        },
         databaseStack: databaseInfra,
       },
       config.userAuth
@@ -198,7 +224,7 @@ export class CoreAwsInfraBuilder {
       config.api.publicApi.region,
       {
         dependantInfra: {
-          sharedGlobalInfra: config.sharedGlobalInfra,
+          domainHostedZone: domainHostedZone,
           cognitoUserPool: userAuthInfra.cognitoStack.userPool,
           userDatabaseTableData: databaseInfra.userTableData,
         },
@@ -215,11 +241,14 @@ export class CoreAwsInfraBuilder {
   }
 
   /**
-   * Creates a hosted zone for your app stage, e.g. beta.myApp.com
+   * Creates infrastructure stack for a subdomain.
    */
-  createBasicDnsInfra(
+  createSubDomainInfra(
     stage: Stage,
-    sharedGlobalInfra: SharedGlobalInfraConfig
+    parentDomainInfra: {
+      hostedZone: route53.HostedZone;
+      region: string;
+    }
   ) {
     const infraResourceIdBuilder = new InfraResourceIdBuilder(
       this.appName,
@@ -228,24 +257,30 @@ export class CoreAwsInfraBuilder {
     const route53StackName =
       infraResourceIdBuilder.createStageBasedId("Route53Stack");
 
-    const appDomainName = `${stage.toString().toLowerCase()}.${
-      sharedGlobalInfra.dns.appBaseDomain
+    const subdomainName = `${stage.toString().toLowerCase()}.${
+      parentDomainInfra.hostedZone.zoneName
     }`;
 
-    const route53Stack = new SimpleDnsStack(this.cdkApp, route53StackName, {
-      stackName: route53StackName,
-      env: {
-        account: this.awsAccountId,
-        region: sharedGlobalInfra.dns.stackRegion,
+    const route53Stack = new SubdomainDnsStack(
+      this.cdkApp,
+      route53StackName,
+      {
+        stackName: route53StackName,
+        env: {
+          account: this.awsAccountId,
+          region: parentDomainInfra.region,
+        },
+        terminationProtection: true,
       },
-      terminationProtection: true,
-      idBuilder: infraResourceIdBuilder,
-      appDomain: appDomainName,
-    });
+      {
+        idBuilder: infraResourceIdBuilder,
+        parentDomainHostedZone: parentDomainInfra.hostedZone,
+        subDomainName: subdomainName,
+      }
+    );
 
     return {
-      dnsStack: route53Stack,
-      appDomainName: appDomainName,
+      hostedZone: route53Stack.subDomainHostedZone,
     };
   }
 
@@ -284,16 +319,22 @@ export class CoreAwsInfraBuilder {
       stage
     );
     const sesStackName = infraResourceIdBuilder.createStageBasedId("SesStack");
-    const sesStack = new SesStack(this.cdkApp, sesStackName, {
-      stackName: sesStackName,
-      env: {
-        account: this.awsAccountId,
-        region: region,
+    const sesStack = new EmailStack(
+      this.cdkApp,
+      sesStackName,
+      {
+        stackName: sesStackName,
+        env: {
+          account: this.awsAccountId,
+          region: region,
+        },
+        terminationProtection: true,
       },
-      terminationProtection: true,
-      idBuilder: infraResourceIdBuilder,
-      appDomain: props.appDomain,
-    });
+      {
+        idBuilder: infraResourceIdBuilder,
+        emailDomainHostedZone: props.domainHostedZone,
+      }
+    );
 
     return sesStack;
   }
@@ -305,7 +346,10 @@ export class CoreAwsInfraBuilder {
      */
     dependantInfra: {
       databaseStack: DynamoDBStack;
-      emailStack: SesStack;
+      emailInfra: {
+        sesIdentity: ses.EmailIdentity;
+        emailAddress: string;
+      };
     },
     props: CreateUserAuthInfraProps
   ) {
@@ -326,10 +370,10 @@ export class CoreAwsInfraBuilder {
       crossRegionReferences: true,
       stage: stage,
       idBuilder: infraResourceIdBuilder,
-      userDynamoDbTable: dependantInfra.databaseStack.userTableData,
+      userDbTable: dependantInfra.databaseStack.userTableData,
       appDisplayName: this.appName,
       frontEndVerifyAccountCodeURL: props.cognito.frontEndVerifyAccountCodeURL,
-      noReplyEmailInfra: dependantInfra.emailStack.noReplyEmailInfra,
+      emailInfra: dependantInfra.emailInfra,
       preSignupLambdaTriggerConfig: props.cognito.preSignupLambdaTriggerConfig,
       postConfirmationLambdaTriggerConfig:
         props.cognito.postConfirmationLambdaTriggerConfig,
@@ -345,7 +389,7 @@ export class CoreAwsInfraBuilder {
     region: string,
     props: {
       dependantInfra: {
-        sharedGlobalInfra: SharedGlobalInfraConfig;
+        domainHostedZone: route53.HostedZone;
         cognitoUserPool: IUserPool;
         userDatabaseTableData: IDatabaseTableData;
       };
@@ -361,12 +405,6 @@ export class CoreAwsInfraBuilder {
     const publicApiStackName =
       infraResourceIdBuilder.createStageBasedId("PublicApi");
 
-    let publicApiDomainName;
-
-    publicApiDomainName = `${stage.toString().toLowerCase()}.${region}.api.${
-      dependantInfra.sharedGlobalInfra.dns.appBaseDomain
-    }`;
-
     return new PublicServerlessApiStack(this.cdkApp, publicApiStackName, {
       stackName: publicApiStackName,
       env: {
@@ -377,7 +415,7 @@ export class CoreAwsInfraBuilder {
       crossRegionReferences: true,
       appDisplayName: this.appName,
       idBuilder: infraResourceIdBuilder,
-      apiDomainName: publicApiDomainName,
+      apiDomainName: dependantInfra.domainHostedZone.zoneName,
       cognitoUserPool: dependantInfra.cognitoUserPool,
       userDatabaseTableData: dependantInfra.userDatabaseTableData,
       lambdaApiEndpointConfig: apiConfig.publicApi.lambdaApiEndpointConfig,

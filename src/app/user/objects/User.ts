@@ -28,60 +28,35 @@ export class User implements IUser {
   @Expose()
   banStatus?: UserBanStatus;
 
-  constructor(
-    objectVersion: number | null,
-    userName: string,
-    id: string,
-    password: UserPassword,
-    email: string,
-    isAccountConfirmed: boolean,
-    joinDate: Date,
-    firstName?: string,
-    lastName?: string,
-    banStatus?: UserBanStatus
-  ) {
-    if (objectVersion === null) {
-      this.objectVersion = 1;
-    } else {
-      this.objectVersion = objectVersion;
-    }
-
-    this.userName = userName;
-    this.password = password;
-    this.id = id;
-    this.email = email;
-    this.isAccountConfirmed = isAccountConfirmed;
-    this.firstName = firstName;
-    this.lastName = lastName;
-    this.joinDate = joinDate;
-    this.banStatus = banStatus;
-  }
-
-  static builder(props: {
+  constructor(params: {
     objectVersion: number | null;
     userName: string;
     id: string;
     password: UserPassword;
     email: string;
-    authType: UserAuthType;
     isAccountConfirmed: boolean;
+    joinDate: Date;
+    authType: UserAuthType;
     firstName?: string;
     lastName?: string;
-    joinDate: Date;
     banStatus?: UserBanStatus;
   }) {
-    return new User(
-      props.objectVersion,
-      props.userName,
-      props.id,
-      props.password,
-      props.email,
-      props.isAccountConfirmed,
-      props.joinDate,
-      props.firstName,
-      props.lastName,
-      props.banStatus
-    );
+    if (params.objectVersion === null) {
+      this.objectVersion = 1;
+    } else {
+      this.objectVersion = params.objectVersion;
+    }
+
+    this.userName = params.userName;
+    this.password = params.password;
+    this.id = params.id;
+    this.email = params.email;
+    this.isAccountConfirmed = params.isAccountConfirmed;
+    this.firstName = params.firstName;
+    this.lastName = params.lastName;
+    this.joinDate = params.joinDate;
+    this.authType = params.authType;
+    this.banStatus = params.banStatus;
   }
 
   static validate(user: User) {

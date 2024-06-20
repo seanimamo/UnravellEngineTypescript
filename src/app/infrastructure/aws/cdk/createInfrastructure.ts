@@ -21,14 +21,14 @@ coreAppInfraBuilder.buildAppInfra({
   sharedGlobalInfra: {
     dns: {
       appBaseDomain: AWS_INFRA_CONFIG.dns.primaryAppDomain,
-      stackRegion: "us-east-2",
+      stackRegion: AWS_INFRA_CONFIG.deploymentRegion,
     },
   },
   stageInfra: {
     stage: Stage.BETA,
     database: {
       databaseType: "dynamodb",
-      region: "us-east-2",
+      region: AWS_INFRA_CONFIG.deploymentRegion,
       tables: {
         user: {
           tableName: AWS_INFRA_CONFIG.database.tables.user.tableName,
@@ -41,7 +41,7 @@ coreAppInfraBuilder.buildAppInfra({
     },
     userAuth: {
       cognito: {
-        region: "us-east-2",
+        region: AWS_INFRA_CONFIG.deploymentRegion,
         // The URL cognito will send to users emails for account verification
         frontEndVerifyAccountCodeURL: `https://wwww.beta-${AWS_INFRA_CONFIG.dns.primaryAppDomain}/account/verify`,
         // Configuration for our custom lambda function that runs during user signups
@@ -70,11 +70,11 @@ coreAppInfraBuilder.buildAppInfra({
       },
     },
     email: {
-      region: "us-east-2",
+      region: AWS_INFRA_CONFIG.deploymentRegion,
     },
     api: {
       publicApi: {
-        region: "us-east-2",
+        region: AWS_INFRA_CONFIG.deploymentRegion,
         lambdaApiEndpointConfig: {
           getUserByUserId: {
             entry: path.join(

@@ -55,6 +55,12 @@ export interface DynamoTableData extends IDatabaseTableData {
   globalSecondaryIndexes: (DynamoDbIndex & { arn: string })[];
 }
 
+export function isDynamoTableData(
+  tableData: IDatabaseTableData
+): tableData is DynamoTableData {
+  return tableData.databaseType === "dynamodb";
+}
+
 /**
  * This class is used to produce NOSQL databases on AWS using AWS DnamoDB.
  * It creates the necessary DynamoDB tables required for our core application
