@@ -1,1 +1,1 @@
-export { SimpleDnsStackProps } from "./dns-stack";
+export { SingleDomainDnsStack, SubdomainDnsStack } from "./dns-stack";

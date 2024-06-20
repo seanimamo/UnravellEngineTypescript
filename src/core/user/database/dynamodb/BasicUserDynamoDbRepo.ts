@@ -73,14 +73,16 @@ export abstract class BasicUserDynamoDbRepo
   async save(user: IUser) {
     this.validate(user);
 
+    const [existingUserWithUsername, existingUserWithEmail] = await Promise.all(
+      [this.getByUsername(user.userName), this.getByEmail(user.email)]
+    );
+
     // Check if a user with the given username already exists
-    const existingUserWithUsername = await this.getByUsername(user.userName);
-    if (existingUserWithUsername !== null) {
+    if (existingUserWithUsername.data !== null) {
       throw new UsernameAlreadyInUseError();
     }
 
-    const existingUserWithEmail = await this.getByEmail(user.email);
-    if (existingUserWithEmail !== null) {
+    if (existingUserWithEmail.data !== null) {
       throw new EmailAlreadyInUseError();
     }
 

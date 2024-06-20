@@ -14,14 +14,14 @@ export interface IUserResourceFactory {
    * Creates an instance of IUser object.
    * @remarks This should contain application specific logic.
    */
-  createUser(params: {
-    id?: string;
-    textPassword?: string;
-    email?: string;
-    authType?: UserAuthType;
-    firstName?: string;
-    lastName?: string;
-  }): IUser;
+  createUser(
+    params: {
+      id?: string;
+      textPassword?: string;
+      email?: string;
+      authType?: UserAuthType;
+    } & Record<string, unknown>
+  ): IUser;
 
   /**
    * Creates an instance of IUserPassword object.

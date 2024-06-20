@@ -7,7 +7,7 @@ export const AWS_INFRA_CONFIG = {
   /**
    * The region the infrastructure will be deployed in
    */
-  deploymentRegion: "us-east-1",
+  deploymentRegion: "us-east-2",
   /**
    * Your AWS account id
    */

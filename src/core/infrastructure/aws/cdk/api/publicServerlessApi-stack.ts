@@ -213,9 +213,7 @@ export class PublicServerlessApiStack extends Stack {
       },
       bundling: {
         minify: true,
-        externalModules: [
-          "@aws-sdk", // We can use the '@aws-sdk' node module already available in the Lambda runtime
-        ],
+        externalModules: [],
         esbuildArgs: {
           // Pass additional arguments to esbuild
           // "--analyze": true,

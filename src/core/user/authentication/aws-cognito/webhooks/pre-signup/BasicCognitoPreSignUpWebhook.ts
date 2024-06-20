@@ -1,7 +1,11 @@
 import { PreSignUpTriggerEvent } from "aws-lambda";
 import { ApiError, InvalidRequestApiError } from "../../../../../api/ApiError";
 import { DataValidationError, DataValidator } from "../../../../../util";
-import { IUser, IUserResourceFactory } from "../../../../types";
+import {
+  IUser,
+  IUserResourceFactory,
+  USER_AUTH_TYPES,
+} from "../../../../types";
 import { ICognitoPreSignUpWebhook } from ".";
 import { IUserRepo } from "../../../../database/types";
 import { IStripeUserDataRepo } from "../../../../../payments/stripe/user-data/database";
@@ -57,7 +61,6 @@ export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
           event.request.userAttributes["custom:firstName"],
           "userAttributes[custom:firstName]"
         )
-        .ifNotUndefined()
         .notNull()
         .isString()
         .notEmpty();
@@ -66,7 +69,6 @@ export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
           event.request.userAttributes["custom:lastName"],
           "userAttributes[custom:lastName]"
         )
-        .ifNotUndefined()
         .notNull()
         .isString()
         .notEmpty();
@@ -113,6 +115,7 @@ export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
       email: email,
       id: userName,
       textPassword: rawPassword,
+      authType: USER_AUTH_TYPES.INTERNAL,
       firstName,
       lastName,
     });
