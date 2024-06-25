@@ -106,7 +106,7 @@ export class DynamoDBStack extends Stack {
    * since there is no added cost with AWS.
    */
   private createGenericDynamoDBTable(resourceName: string): DynamoTableData {
-    const tableName = this.idBuilder.createStageBasedId(resourceName);
+    const tableName = this.idBuilder.stageBasedId(resourceName);
 
     /**
      * By simply creating this class, this DynamoDbStack will produce a new DynamoDB Table.

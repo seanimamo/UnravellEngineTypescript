@@ -8,6 +8,7 @@ import { PublicServerlessApiStack } from "./api";
 import { NodejsFunctionProps } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as route53 from "aws-cdk-lib/aws-route53";
 import * as ses from "aws-cdk-lib/aws-ses";
+import { CustomNodeJsLambdaConfig } from ".";
 
 export interface SharedGlobalInfraConfig {
   dns: {
@@ -41,26 +42,16 @@ export interface CreateUserAuthInfraProps {
   cognito: {
     region: string;
     frontEndVerifyAccountCodeURL: string;
-    preSignupLambdaTriggerConfig: {
-      /**
-       * The path to the file containing the lambda function
-       */
-      entry: string;
-      /**
-       * The name of the function within the provided file used as the lambda function
-       */
-      handler: string;
-    } & NodejsFunctionProps;
-    postConfirmationLambdaTriggerConfig: {
-      /**
-       * The path to the file containing the lambda function
-       */
-      entry: string;
-      /**
-       * The name of the function within the provided file used as the lambda function
-       */
-      handler: string;
-    } & NodejsFunctionProps;
+    preSignupLambdaTriggerConfig: CustomNodeJsLambdaConfig;
+    postConfirmationLambdaTriggerConfig: CustomNodeJsLambdaConfig;
+    /**
+     * The configuration for setting up the Cognito custom email sender lambda.
+     * This allows us to customize the automatic emails from cognito.
+     */
+    mailingLogic: {
+      method: "custom" | "cognito";
+      customEmailLambdaTrigger: CustomNodeJsLambdaConfig;
+    };
   };
 }
 
@@ -72,16 +63,7 @@ export interface CreateApiInfraProps {
   publicApi: {
     region: string;
     lambdaApiEndpointConfig: {
-      getUserByUserId: {
-        /**
-         * The path to the file containing the lambda function
-         */
-        entry: string;
-        /**
-         * The name of the function within the provided file used as the lambda function
-         */
-        handler: string;
-      } & NodejsFunctionProps;
+      getUserByUserId: CustomNodeJsLambdaConfig;
     };
   };
 }
@@ -139,7 +121,7 @@ export class CoreAwsInfraBuilder {
     );
 
     // Creates the root DNS infrastructure for your app, necessary for enabling <yourDomain>.com to work.
-    const route53StackName = infraResourceIdBuilder.createStageBasedId(
+    const route53StackName = infraResourceIdBuilder.stageBasedId(
       "Shared-Route53Stack"
     );
     const parentDomainDnsInfra = new SingleDomainDnsStack(
@@ -255,7 +237,7 @@ export class CoreAwsInfraBuilder {
       stage
     );
     const route53StackName =
-      infraResourceIdBuilder.createStageBasedId("Route53Stack");
+      infraResourceIdBuilder.stageBasedId("Route53Stack");
 
     const subdomainName = `${stage.toString().toLowerCase()}.${
       parentDomainInfra.hostedZone.zoneName
@@ -291,7 +273,7 @@ export class CoreAwsInfraBuilder {
         stage
       );
       const dynamoDbStackName =
-        infraResourceIdBuilder.createStageBasedId("DynamoDBStack");
+        infraResourceIdBuilder.stageBasedId("DynamoDBStack");
       const dynamoDbStack = new DynamoDBStack(this.cdkApp, dynamoDbStackName, {
         stackName: dynamoDbStackName,
         env: {
@@ -318,7 +300,7 @@ export class CoreAwsInfraBuilder {
       this.appName,
       stage
     );
-    const sesStackName = infraResourceIdBuilder.createStageBasedId("SesStack");
+    const sesStackName = infraResourceIdBuilder.stageBasedId("SesStack");
     const sesStack = new EmailStack(
       this.cdkApp,
       sesStackName,
@@ -358,26 +340,39 @@ export class CoreAwsInfraBuilder {
       stage
     );
 
+    const {
+      frontEndVerifyAccountCodeURL,
+      preSignupLambdaTriggerConfig,
+      postConfirmationLambdaTriggerConfig,
+      mailingLogic,
+    } = props.cognito;
+
     const cognitoStackName =
-      infraResourceIdBuilder.createStageBasedId("CognitoStack");
-    const cognitoStack = new CognitoStack(this.cdkApp, cognitoStackName, {
-      stackName: cognitoStackName,
-      env: {
-        region: props.cognito.region,
-        account: this.awsAccountId,
+      infraResourceIdBuilder.stageBasedId("CognitoStack");
+    const cognitoStack = new CognitoStack(
+      this.cdkApp,
+      cognitoStackName,
+      {
+        stackName: cognitoStackName,
+        env: {
+          region: props.cognito.region,
+          account: this.awsAccountId,
+        },
+        terminationProtection: true,
+        crossRegionReferences: true,
       },
-      terminationProtection: true,
-      crossRegionReferences: true,
-      stage: stage,
-      idBuilder: infraResourceIdBuilder,
-      userDbTable: dependantInfra.databaseStack.userTableData,
-      appDisplayName: this.appName,
-      frontEndVerifyAccountCodeURL: props.cognito.frontEndVerifyAccountCodeURL,
-      emailInfra: dependantInfra.emailInfra,
-      preSignupLambdaTriggerConfig: props.cognito.preSignupLambdaTriggerConfig,
-      postConfirmationLambdaTriggerConfig:
-        props.cognito.postConfirmationLambdaTriggerConfig,
-    });
+      {
+        stage: stage,
+        idBuilder: infraResourceIdBuilder,
+        userDbTable: dependantInfra.databaseStack.userTableData,
+        appDisplayName: this.appName,
+        frontEndVerifyAccountCodeURL,
+        emailInfra: dependantInfra.emailInfra,
+        preSignupLambdaTriggerConfig,
+        postConfirmationLambdaTriggerConfig,
+        mailingLogic,
+      }
+    );
 
     return {
       cognitoStack: cognitoStack,
@@ -402,8 +397,7 @@ export class CoreAwsInfraBuilder {
       this.appName,
       stage
     );
-    const publicApiStackName =
-      infraResourceIdBuilder.createStageBasedId("PublicApi");
+    const publicApiStackName = infraResourceIdBuilder.stageBasedId("PublicApi");
 
     return new PublicServerlessApiStack(this.cdkApp, publicApiStackName, {
       stackName: publicApiStackName,

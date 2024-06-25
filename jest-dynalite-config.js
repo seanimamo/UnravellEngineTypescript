@@ -1,5 +1,3 @@
-const { Stage } = require("./src/core/infrastructure");
-const { InfraResourceIdBuilder } = require("./src/core/infrastructure");
 const {
   GENERIC_DYNAMODB_INDEXES,
 } = require("./src/core/database/dynamodb/DynamoDBConstants");
@@ -7,10 +5,7 @@ const {
 module.exports = {
   tables: [
     {
-      TableName: new InfraResourceIdBuilder(
-        Stage.BETA,
-        "testStack"
-      ).createStageBasedId("MainTable"),
+      TableName: "UserTable",
       KeySchema: [
         {
           AttributeName: GENERIC_DYNAMODB_INDEXES.PRIMARY.partitionKeyName,

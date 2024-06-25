@@ -50,9 +50,7 @@ export class EmailStack extends Stack {
      */
     this.domainSesIdentity = new ses.EmailIdentity(
       this,
-      idBuilder.createStageBasedId(
-        `${emailDomainHostedZone.zoneName}SesIdentity`
-      ),
+      idBuilder.stageBasedId(`${emailDomainHostedZone.zoneName}SesIdentity`),
       {
         identity: ses.Identity.publicHostedZone(emailDomainHostedZone),
         mailFromDomain: mailFromDomain,
@@ -66,7 +64,7 @@ export class EmailStack extends Stack {
      */
     new route53.MxRecord(
       this,
-      idBuilder.createStageBasedId(
+      idBuilder.stageBasedId(
         `${props.emailDomainHostedZone.zoneName}SesDomainIdentityMxRecord`
       ),
       {
@@ -82,7 +80,7 @@ export class EmailStack extends Stack {
     );
     new route53.TxtRecord(
       this,
-      idBuilder.createStageBasedId(
+      idBuilder.stageBasedId(
         `${props.emailDomainHostedZone.zoneName}SesDomainIdentityTxtRecord`
       ),
       {
