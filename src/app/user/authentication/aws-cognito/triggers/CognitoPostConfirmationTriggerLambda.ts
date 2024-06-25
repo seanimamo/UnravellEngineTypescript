@@ -15,7 +15,8 @@ import {
 const postConfirmationEventHandler =
   new BasicCognitoPostConfirmationEventHandler(
     new UserResourceFactory(
-      new DynamoDBClient({ region: AWS_INFRA_CONFIG.deploymentRegion })
+      new DynamoDBClient({ region: AWS_INFRA_CONFIG.deploymentRegion }),
+      process.env.USER_DB_TABLE_NAME!
     )
   );
 

@@ -25,7 +25,7 @@ test("UserAccountManager Create and Delete User", async () => {
     credentials: fromIni({ profile: "unravellEmailMaster" }),
   });
 
-  const userFactory = new UserResourceFactory(dbClient);
+  const userFactory = new UserResourceFactory(dbClient, "UserTable");
 
   const userRepo = userFactory.getUserRepo();
 

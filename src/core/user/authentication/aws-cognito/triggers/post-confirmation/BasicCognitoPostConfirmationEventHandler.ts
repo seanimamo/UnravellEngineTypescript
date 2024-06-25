@@ -3,11 +3,11 @@ import {
   PreSignUpTriggerEvent,
 } from "aws-lambda";
 import { InvalidRequestApiError } from "../../../../../api/ApiError";
-import { DataValidationError, DataValidator } from "../../../../../util";
-import { IUserResourceFactory } from "../../../../types";
+import { DataValidationError, DataValidator } from "@/core/util";
+import { IUserResourceFactory } from "@/core/user/types";
 import { ICognitoPostConfirmationUpEventHandler } from ".";
-import { ObjectDoesNotExistError } from "../../../../../database/error";
-import { IUserRepo } from "../../../../database/types";
+import { ObjectDoesNotExistError } from "@/core/database/error";
+import { IUserRepo } from "@/core/user/database";
 
 /**
  * This is a generic implementation of {@link (ICognitoPostConfirmationUpEventHandler)} which has logic for

@@ -1,4 +1,4 @@
-import { ClassConstructor } from "./types";
+import { ClassConstructor } from "./";
 
 /**
  * A sleep function that can be used with async/await syntax.

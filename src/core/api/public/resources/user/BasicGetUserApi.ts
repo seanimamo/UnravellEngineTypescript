@@ -1,6 +1,6 @@
 import { InvalidRequestApiError } from "../../../ApiError";
-import { IUserRepo } from "../../../../user/database/types";
-import { DataValidator, DataValidationError } from "../../../../util";
+import { IUserRepo } from "@/core/user/database";
+import { DataValidator, DataValidationError } from "@/core/util";
 import { IApiResponse } from "../../IApiResponse";
 import { IUser } from "../../../../user/types";
 import { IApiRequestProcessor } from "../../IApiRequestProcessor";

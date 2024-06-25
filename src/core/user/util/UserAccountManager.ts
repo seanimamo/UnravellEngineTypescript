@@ -1,5 +1,5 @@
 import { CognitoDao } from "../authentication/aws-cognito/CognitoDao";
-import { IUserRepo } from "../database/types";
+import { IUserRepo } from "../database";
 import { IUser, IUserResourceFactory } from "../types";
 
 export class UserAccountManager {

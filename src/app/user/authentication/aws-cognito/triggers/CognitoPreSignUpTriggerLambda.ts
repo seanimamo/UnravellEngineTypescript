@@ -29,7 +29,15 @@ export const awsLambda: PreSignUpTriggerHandler = async function (
   context,
   callback
 ) {
-  await preSignUpEventHandler.handleEvent(event);
+  try {
+    await preSignUpEventHandler.handleEvent(event);
+  } catch (error) {
+    if (error instanceof Error) {
+      callback(error, event);
+      return;
+    }
+  }
+
   // Returns response to Amazon Cognito
   callback(null, event);
 };

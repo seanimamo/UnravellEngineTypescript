@@ -19,14 +19,17 @@ import { IStripeUserData } from "../../core/payments/stripe/user-data";
 export class UserResourceFactory implements IUserResourceFactory {
   private static USER_SERIALIZER = new ClassSerializer(User);
   private static PASSWORD_SERIALIZER = new ClassSerializer(UserPassword);
-  private static STRIPE_USER__DATA_SERIALIZER =
+  private static STRIPE_USER_DATA_SERIALIZER =
     new NaiveJsonSerializer<IStripeUserData>();
+
+  private readonly userTableName: string;
 
   constructor(
     private readonly dbClient: DynamoDBClient,
-    private readonly userTableName: string
+    userTableName?: string
   ) {
     this.dbClient = dbClient;
+    this.userTableName = userTableName ?? process.env.USER_DB_TABLE_NAME!;
   }
 
   /**
@@ -69,7 +72,7 @@ export class UserResourceFactory implements IUserResourceFactory {
   }
 
   getUserStripeDataSerializer(): ISerializer<IStripeUserData> {
-    return UserResourceFactory.STRIPE_USER__DATA_SERIALIZER;
+    return UserResourceFactory.STRIPE_USER_DATA_SERIALIZER;
   }
 
   getUserRepo() {
@@ -84,7 +87,7 @@ export class UserResourceFactory implements IUserResourceFactory {
   getUserStripeDataRepo() {
     return new BasicStripeUserDataDynamoDbRepo(
       this.dbClient,
-      UserResourceFactory.STRIPE_USER__DATA_SERIALIZER,
+      UserResourceFactory.STRIPE_USER_DATA_SERIALIZER,
       // Dynamodb table name for user stripe info is stored in the same table as users.)
       this.userTableName!
     );

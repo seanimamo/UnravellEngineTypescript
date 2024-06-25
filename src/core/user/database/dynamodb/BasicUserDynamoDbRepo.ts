@@ -17,7 +17,8 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { retryAsyncMethodWithExpBackoffJitter } from "../../../util";
 import { IUser, IUserPassword } from "../../types";
 import { IDatabaseResponse, ISerializer } from "../../../database";
-import { IUserRepo } from "../types";
+import { IUserRepo } from "..";
+import { EmailAlreadyInUseError, UsernameAlreadyInUseError } from "../error";
 
 /**
  * A basic implementation of {@link IUserRepo} using dynamodb as the database to handle {@link IUser} data.
@@ -227,19 +228,5 @@ export abstract class BasicUserDynamoDbRepo
       new UpdateItemCommand(updateParams)
     );
     return this.serializer.fromJson(unmarshall(response.Attributes!));
-  }
-}
-
-export class EmailAlreadyInUseError extends Error {
-  constructor(message: string = "The email is already in use") {
-    super(message);
-    this.name = "EmailAlreadyInUseError";
-  }
-}
-
-export class UsernameAlreadyInUseError extends Error {
-  constructor(message: string = "Username already exists") {
-    super(message);
-    this.name = "UsernameAlreadyInUseError";
   }
 }

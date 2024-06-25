@@ -2,12 +2,12 @@ import {
   InvalidRequestApiError,
   RetryAttemptsExhaustedApiError,
 } from "../../../ApiError";
-import { IUserRepo } from "../../../../user/database/types";
+import { IUserRepo } from "@/core/user/database";
 import {
   DataValidator,
   DataValidationError,
   RetryAttemptsExhaustedError,
-} from "../../../../util";
+} from "@/core/util";
 import { IApiResponse } from "../../IApiResponse";
 import { IApiRequestProcessor } from "../../IApiRequestProcessor";
 import { IApiRequest } from "../../IApiRequest";

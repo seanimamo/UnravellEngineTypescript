@@ -1,7 +1,7 @@
 import { IUser, UserAuthType } from "./IUser";
 import { IUserPassword } from ".";
 import { ISerializer } from "../../database";
-import { IUserRepo } from "../database/types";
+import { IUserRepo } from "../database";
 import { IStripeUserData } from "../../payments/stripe/user-data";
 import { IStripeUserDataRepo } from "../../payments/stripe/user-data/database";
 

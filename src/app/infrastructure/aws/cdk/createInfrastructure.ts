@@ -58,9 +58,6 @@ coreAppInfraBuilder.buildAppInfra({
             // This enables us to turn signing up on and off like a switch on our lambda
             IS_SIGN_UP_ALLOWED: "true",
           },
-          bundling: {
-            minify: false,
-          },
         },
         // Configuration for our custom lambda function that runs after a user confirms their account
         postConfirmationLambdaTriggerConfig: {
@@ -69,7 +66,12 @@ coreAppInfraBuilder.buildAppInfra({
             "../../../user/authentication/aws-cognito/triggers/CognitoPostConfirmationTriggerLambda.ts"
           ),
           handler: "awsLambda",
-          bundling: {},
+          bundling: {
+            esbuildArgs: {
+              // Pass additional arguments to esbuild
+              // "--analyze": true,
+            },
+          },
         },
         mailingLogic: {
           method: "cognito",
@@ -79,9 +81,6 @@ coreAppInfraBuilder.buildAppInfra({
               "../../../user/authentication/aws-cognito/triggers/CognitoCustomMessageTriggerLambda.ts"
             ),
             handler: "awsLambda",
-            bundling: {
-              minify: false,
-            },
           },
         },
       },

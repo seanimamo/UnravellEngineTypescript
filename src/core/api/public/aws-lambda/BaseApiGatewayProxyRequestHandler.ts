@@ -117,10 +117,10 @@ export abstract class BaseApiGatewayProxyRequestHandler<
       if (error instanceof ApiError) {
         console.info("ApiError occured while processing request", error);
         return {
-          statusCode: error.statusCode,
+          statusCode: error.httpCode,
           body: JSON.stringify({
             error: {
-              type: error.errorType,
+              code: error.code,
               message: error.message,
             },
           }),

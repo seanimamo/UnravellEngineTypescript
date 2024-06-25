@@ -1,6 +1,6 @@
-import { IDatabaseResponse } from "../../../database";
-import { IUserPassword } from "../../types";
-import { IUser } from "../../types/IUser";
+import { IDatabaseResponse } from "../../database";
+import { IUserPassword } from "../types";
+import { IUser } from "../types/IUser";
 
 /**
  * Core interface for a database repository that can execute CRUD operations for {@link IUser}'s

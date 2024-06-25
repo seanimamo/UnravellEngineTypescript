@@ -67,7 +67,8 @@ export class GetUserApi extends BasicGetUserApi<
 const getUserApiLambda = new PublicApiGatewayProxyRequestHandler(
   new GetUserApi(
     new UserResourceFactory(
-      new DynamoDBClient(AWS_INFRA_CONFIG.deploymentRegion)
+      new DynamoDBClient(AWS_INFRA_CONFIG.deploymentRegion),
+      process.env.USER_DB_TABLE_NAME!
     ).getUserRepo()
   )
 );

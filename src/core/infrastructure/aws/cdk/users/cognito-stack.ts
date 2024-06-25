@@ -236,7 +236,7 @@ export class CognitoStack extends Stack {
     );
     const preSignUpLambdaTrigger = new NodejsFunction(this, preSignUpLambdaId, {
       functionName: preSignUpLambdaId,
-      runtime: Runtime.NODEJS_16_X,
+      runtime: Runtime.NODEJS_18_X,
       entry: preSignupLambdaTriggerConfig.entry,
       handler: preSignupLambdaTriggerConfig.handler,
       architecture:
@@ -256,10 +256,7 @@ export class CognitoStack extends Stack {
       ],
       bundling: {
         minify: true,
-        esbuildArgs: {
-          // Pass additional arguments to esbuild
-          // "--analyze": true,
-        },
+        externalModules: ["@aws-sdk"],
         ...preSignupLambdaTriggerConfig.bundling,
       },
     });
@@ -276,7 +273,7 @@ export class CognitoStack extends Stack {
       postConfirmationLambdaId,
       {
         functionName: postConfirmationLambdaId,
-        runtime: Runtime.NODEJS_16_X,
+        runtime: Runtime.NODEJS_18_X,
         entry: postConfirmationLambdaTriggerConfig.entry,
         handler: postConfirmationLambdaTriggerConfig.handler,
         architecture:
@@ -297,10 +294,7 @@ export class CognitoStack extends Stack {
         ],
         bundling: {
           minify: true,
-          esbuildArgs: {
-            // Pass additional arguments to esbuild
-            // "--analyze": true,
-          },
+          externalModules: ["@aws-sdk"],
           ...postConfirmationLambdaTriggerConfig.bundling,
         },
       }
@@ -327,7 +321,7 @@ export class CognitoStack extends Stack {
       customEmailSenderLambdaId,
       {
         functionName: customEmailSenderLambdaId,
-        runtime: Runtime.NODEJS_16_X,
+        runtime: Runtime.NODEJS_18_X,
         entry: lambdaConfig.entry,
         handler: lambdaConfig.handler,
         architecture: lambdaConfig.architecture ?? Architecture.ARM_64,
@@ -340,10 +334,7 @@ export class CognitoStack extends Stack {
         initialPolicy: [...(lambdaConfig.initialPolicy ?? [])],
         bundling: {
           minify: true,
-          esbuildArgs: {
-            // Pass additional arguments to esbuild
-            // "--analyze": true,
-          },
+          externalModules: ["@aws-sdk"],
           ...lambdaConfig.bundling,
         },
       }

@@ -1,12 +1,16 @@
-export class ApiError extends Error {
-  statusCode: number;
-  errorType: string;
-  message: string;
-  constructor(statusCode: number, errorType: string, message: string) {
-    super(message);
-    this.statusCode = statusCode;
-    this.errorType = errorType;
-    this.message = message;
+import { CodedError } from "@/core/common/index";
+
+export class ApiError extends CodedError {
+  constructor(
+    /**
+     * The HTTP status code
+     */
+    public readonly httpCode: number,
+    type: string,
+    message: string
+  ) {
+    super(message, type);
+    this.httpCode = httpCode;
   }
 }
 

@@ -202,7 +202,7 @@ export class PublicServerlessApiStack extends Stack {
    */
   private getApiLambdaProps(overrides: NodejsFunctionProps) {
     return {
-      runtime: overrides.runtime ?? Runtime.NODEJS_16_X,
+      runtime: overrides.runtime ?? Runtime.NODEJS_18_X,
       architecture: overrides.architecture ?? Architecture.ARM_64,
       memorySize: overrides.memorySize ?? 1024,
       timeout: overrides.timeout ?? Duration.seconds(10),
@@ -211,11 +211,7 @@ export class PublicServerlessApiStack extends Stack {
       },
       bundling: {
         minify: true,
-        externalModules: [],
-        esbuildArgs: {
-          // Pass additional arguments to esbuild
-          // "--analyze": true,
-        },
+        externalModules: ["@aws-sdk"],
         ...overrides.bundling,
       },
     };

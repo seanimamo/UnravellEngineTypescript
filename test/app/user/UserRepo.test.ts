@@ -8,7 +8,7 @@ import { startDb, stopDb, createTables, deleteTables } from "jest-dynalite";
 import {
   EmailAlreadyInUseError,
   UsernameAlreadyInUseError,
-} from "../../../src/core/user/database/dynamodb/BasicUserDynamoDbRepo";
+} from "@/core/user/database/error";
 
 let v3Client: DynamoDBClient;
 let userResourceFactory: UserResourceFactory;

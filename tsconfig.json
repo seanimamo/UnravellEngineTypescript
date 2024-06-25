@@ -3,8 +3,8 @@
     "target": "ES2018",
     "module": "commonjs",
     "lib": [
+      "dom",
       "es2018",
-      "dom"
     ],
     "outDir": "build",
     "declaration": true,
@@ -22,8 +22,17 @@
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
     "forceConsistentCasingInFileNames": true,
+    "paths": {
+        "@/core/api/*": ["./src/core/api/*"],
+        "@/core/common/*": ["./src/core/common/*"],
+        "@/core/database/*": ["./src/core/database/*"],
+        "@/core/infrastructure/*": ["./src/core/infrastructure/*"],
+        "@/core/user/*": ["./src/core/user/*"],
+        "@/core/util": ["./src/core/util/index"]
+      }
   },
   "exclude": [
-    "cdk.out"
+    "cdk.out",
+    "node_modules/**"
   ]
 }

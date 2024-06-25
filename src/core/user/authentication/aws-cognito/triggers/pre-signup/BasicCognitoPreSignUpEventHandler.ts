@@ -1,13 +1,13 @@
 import { PreSignUpTriggerEvent } from "aws-lambda";
 import { ApiError, InvalidRequestApiError } from "../../../../../api/ApiError";
-import { DataValidationError, DataValidator } from "../../../../../util";
+import { DataValidationError, DataValidator } from "@/core/util";
 import {
   IUser,
   IUserResourceFactory,
   USER_AUTH_TYPES,
-} from "../../../../types";
+} from "@/core/user/types";
 import { ICognitoPreSignUpEventHandler } from ".";
-import { IUserRepo } from "../../../../database/types";
+import { IUserRepo } from "@/core/user/database";
 import { IStripeUserDataRepo } from "../../../../../payments/stripe/user-data/database";
 import Stripe from "stripe";
 import { IStripeUserData } from "../../../../../payments/stripe/user-data";
