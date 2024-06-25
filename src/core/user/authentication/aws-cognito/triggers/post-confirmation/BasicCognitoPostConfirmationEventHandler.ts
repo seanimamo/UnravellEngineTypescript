@@ -5,21 +5,20 @@ import {
 import { InvalidRequestApiError } from "../../../../../api/ApiError";
 import { DataValidationError, DataValidator } from "../../../../../util";
 import { IUserResourceFactory } from "../../../../types";
-import { ICognitoPostConfirmationUpWebhook } from ".";
+import { ICognitoPostConfirmationUpEventHandler } from ".";
 import { ObjectDoesNotExistError } from "../../../../../database/error";
 import { IUserRepo } from "../../../../database/types";
 
 /**
- * This is a generic implementation of {@link (ICognitoPostConfirmationUpWebhook)} which has logic for
+ * This is a generic implementation of {@link (ICognitoPostConfirmationUpEventHandler)} which has logic for
  * multiple different types of post confirmation events such as after confirming a forgotten password
  * and after confirming your sign up.
- *
- * The logic for this is intended to be wrapped within the expected AWS lambda function handler {@link CognitoPostConfirmationTriggerLambda}
+ * The logic for this is intended to be wrapped within the expected AWS lambda function handler.
  *
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html
  */
-export class BasicCognitoPostConfirmationWebhook
-  implements ICognitoPostConfirmationUpWebhook
+export class BasicCognitoPostConfirmationEventHandler
+  implements ICognitoPostConfirmationUpEventHandler
 {
   static dataValidator = new DataValidator();
   private readonly userRepo: IUserRepo;
@@ -34,7 +33,7 @@ export class BasicCognitoPostConfirmationWebhook
 
   validateRequest(event: PreSignUpTriggerEvent) {
     try {
-      BasicCognitoPostConfirmationWebhook.dataValidator
+      BasicCognitoPostConfirmationEventHandler.dataValidator
         .validate(
           event.request.clientMetadata!["rawPassword"],
           "clientMetadata.rawPassword"
@@ -66,7 +65,7 @@ export class BasicCognitoPostConfirmationWebhook
     console.info("Event source is a password reset");
     // Validate request object
     try {
-      BasicCognitoPostConfirmationWebhook.dataValidator
+      BasicCognitoPostConfirmationEventHandler.dataValidator
         .validate(
           event.request.clientMetadata!["rawPassword"],
           "clientMetadata.rawPassword"
@@ -107,7 +106,7 @@ export class BasicCognitoPostConfirmationWebhook
     console.info("Event source is a email confirmation");
     // Validate request object
     try {
-      BasicCognitoPostConfirmationWebhook.dataValidator
+      BasicCognitoPostConfirmationEventHandler.dataValidator
         .validate(event.request.userAttributes["email"], "userAttributes.email")
         .notUndefined()
         .notNull()

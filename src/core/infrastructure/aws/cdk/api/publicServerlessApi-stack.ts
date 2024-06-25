@@ -67,7 +67,7 @@ export class PublicServerlessApiStack extends Stack {
 
     this.idBuilder = props.idBuilder;
 
-    const restApiName = this.idBuilder.createStageBasedId(props.appDisplayName);
+    const restApiName = this.idBuilder.stageBasedId(props.appDisplayName);
     const restApi = new apiGateway.RestApi(this, restApiName, {
       restApiName: restApiName,
     });
@@ -113,7 +113,7 @@ export class PublicServerlessApiStack extends Stack {
       }
     );
 
-    const apiDomainNameCertificateId = this.idBuilder.createStageBasedId(
+    const apiDomainNameCertificateId = this.idBuilder.stageBasedId(
       `${apiDomainName}-certificate`
     );
 
@@ -167,9 +167,7 @@ export class PublicServerlessApiStack extends Stack {
       .addResource("{userId}");
     this.addOptionsMethodWithCorsHeaders(userUserIdResource);
 
-    const apiLambdaId = this.idBuilder.createStageBasedId(
-      "GetUserByUsernameLambda"
-    );
+    const apiLambdaId = this.idBuilder.stageBasedId("GetUserByUsernameLambda");
 
     const getUserByUsernameIamPermissions: PolicyStatement[] = [];
     if (databaseTableData.databaseType === "dynamodb") {

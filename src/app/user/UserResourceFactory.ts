@@ -9,7 +9,6 @@ import {
 import { UserRepo } from "./database/UserRepo";
 import { ISerializer, NaiveJsonSerializer } from "../../core/database";
 import { User, UserPassword } from "./objects";
-import { AWS_INFRA_CONFIG } from "../infrastructure/aws/cdk/config";
 import { BasicStripeUserDataDynamoDbRepo } from "../../core/payments/stripe/user-data/database/dynamodb";
 import { IStripeUserData } from "../../core/payments/stripe/user-data";
 
@@ -22,12 +21,11 @@ export class UserResourceFactory implements IUserResourceFactory {
   private static PASSWORD_SERIALIZER = new ClassSerializer(UserPassword);
   private static STRIPE_USER__DATA_SERIALIZER =
     new NaiveJsonSerializer<IStripeUserData>();
-  /**
-   * Dynamodb table name for users.
-   */
-  private static USER_REPO_TABLE_NAME = process.env.USER_DB_TABLE_NAME;
 
-  constructor(private readonly dbClient: DynamoDBClient) {
+  constructor(
+    private readonly dbClient: DynamoDBClient,
+    private readonly userTableName: string
+  ) {
     this.dbClient = dbClient;
   }
 
@@ -43,18 +41,18 @@ export class UserResourceFactory implements IUserResourceFactory {
     firstName: string;
     lastName: string;
   }): User {
-    const user = new User({
-      objectVersion: 1,
-      userName: params.id,
-      id: params.id,
-      password: UserPassword.fromPlainTextPassword(params.textPassword),
-      email: params.email,
-      authType: params.authType,
-      isAccountConfirmed: false,
-      joinDate: new Date(),
-      firstName: params.firstName,
-      lastName: params.lastName,
-    });
+    const user = new User(
+      1,
+      params.id,
+      params.id,
+      UserPassword.fromPlainTextPassword(params.textPassword),
+      params.email,
+      false,
+      new Date(),
+      params.authType,
+      params.firstName,
+      params.lastName
+    );
     return user;
   }
 
@@ -79,7 +77,7 @@ export class UserResourceFactory implements IUserResourceFactory {
       this.dbClient,
       UserResourceFactory.USER_SERIALIZER,
       UserResourceFactory.PASSWORD_SERIALIZER,
-      UserResourceFactory.USER_REPO_TABLE_NAME!
+      this.userTableName!
     );
   }
 
@@ -88,7 +86,7 @@ export class UserResourceFactory implements IUserResourceFactory {
       this.dbClient,
       UserResourceFactory.STRIPE_USER__DATA_SERIALIZER,
       // Dynamodb table name for user stripe info is stored in the same table as users.)
-      UserResourceFactory.USER_REPO_TABLE_NAME!
+      this.userTableName!
     );
   }
 }

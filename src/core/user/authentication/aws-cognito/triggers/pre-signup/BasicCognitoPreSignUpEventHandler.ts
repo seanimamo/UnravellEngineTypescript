@@ -6,21 +6,21 @@ import {
   IUserResourceFactory,
   USER_AUTH_TYPES,
 } from "../../../../types";
-import { ICognitoPreSignUpWebhook } from ".";
+import { ICognitoPreSignUpEventHandler } from ".";
 import { IUserRepo } from "../../../../database/types";
 import { IStripeUserDataRepo } from "../../../../../payments/stripe/user-data/database";
 import Stripe from "stripe";
 import { IStripeUserData } from "../../../../../payments/stripe/user-data";
 
 /**
- * This is a basic implementation of {@link ICognitoPreSignUpWebhook} which has logic for
- * handling persisting a user to your own applications database and running some simple checks.
- * It does not include the logic for AWS Lambda.
+ * This is a basic implementation of {@link ICognitoPreSignUpEventHandler } which has logic for
+ * persisting a cognito user to your own applications database and running some simple checks.
  *
- * The logic for this is intended to be wrapped within the expected AWS lambda function handler {@link CognitoPreSignUpTriggerLambda}
- *
+ * The logic for this is intended to be wrapped within the expected AWS lambda function handler
  */
-export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
+export class BasicCognitoPreSignUpEventHandler
+  implements ICognitoPreSignUpEventHandler
+{
   static dataValidator = new DataValidator();
   private readonly userRepo: IUserRepo;
   private readonly userStripeDataRepo: IStripeUserDataRepo;
@@ -50,33 +50,33 @@ export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
 
   validateRequest(event: PreSignUpTriggerEvent) {
     try {
-      BasicCognitoPreSignUpWebhook.dataValidator
+      BasicCognitoPreSignUpEventHandler.dataValidator
         .validate(event.request.userAttributes["email"], "userAttributes.email")
         .notUndefined()
         .notNull()
         .isString()
         .notEmpty();
-      BasicCognitoPreSignUpWebhook.dataValidator
+      BasicCognitoPreSignUpEventHandler.dataValidator
         .validate(
-          event.request.userAttributes["custom:firstName"],
-          "userAttributes[custom:firstName]"
+          event.request.userAttributes.given_name,
+          "userAttributes.given_name"
         )
         .notNull()
         .isString()
         .notEmpty();
-      BasicCognitoPreSignUpWebhook.dataValidator
+      BasicCognitoPreSignUpEventHandler.dataValidator
         .validate(
-          event.request.userAttributes["custom:lastName"],
-          "userAttributes[custom:lastName]"
+          event.request.userAttributes.given_name,
+          "userAttributes.given_name"
         )
         .notNull()
         .isString()
         .notEmpty();
-      BasicCognitoPreSignUpWebhook.dataValidator
+      BasicCognitoPreSignUpEventHandler.dataValidator
         .validate(event.request.clientMetadata, "clientMetadata")
         .notUndefined()
         .notNull();
-      BasicCognitoPreSignUpWebhook.dataValidator
+      BasicCognitoPreSignUpEventHandler.dataValidator
         .validate(
           event.request.clientMetadata!["rawPassword"],
           "clientMetadata.rawPassword"
@@ -108,8 +108,8 @@ export class BasicCognitoPreSignUpWebhook implements ICognitoPreSignUpWebhook {
     const userName = event.userName; // This will be a UUID when cognito is not configured to have a username.
     const email = event.request.userAttributes["email"];
     const rawPassword = event.request.clientMetadata!["rawPassword"];
-    const firstName = event.request.userAttributes["custom:firstName"];
-    const lastName = event.request.userAttributes["custom:lastName"];
+    const firstName = event.request.userAttributes.given_name;
+    const lastName = event.request.userAttributes.family_name;
 
     const user = this.userFactory.createUser({
       email: email,

@@ -49,23 +49,40 @@ coreAppInfraBuilder.buildAppInfra({
           // The path to the file our lambda file is in
           entry: path.join(
             __dirname,
-            "../../../user/authentication/aws-cognito/webhooks/CognitoPreSignUpTriggerLambda.ts"
+            "../../../user/authentication/aws-cognito/triggers/CognitoPreSignUpTriggerLambda.ts"
           ),
           // The  name of the actual function within the file that will be the lambda
-          handler: "preSignUpLambdaTrigger_handleRequest",
+          handler: "awsLambda",
           // The environment variables on the lambda, these can be changed without having to redeploy.
           environment: {
             // This enables us to turn signing up on and off like a switch on our lambda
             IS_SIGN_UP_ALLOWED: "true",
+          },
+          bundling: {
+            minify: false,
           },
         },
         // Configuration for our custom lambda function that runs after a user confirms their account
         postConfirmationLambdaTriggerConfig: {
           entry: path.join(
             __dirname,
-            "../../../user/authentication/aws-cognito/webhooks/CognitoPostConfirmationTriggerLambda.ts"
+            "../../../user/authentication/aws-cognito/triggers/CognitoPostConfirmationTriggerLambda.ts"
           ),
-          handler: "postConfirmationLambdaTrigger_handleRequest",
+          handler: "awsLambda",
+          bundling: {},
+        },
+        mailingLogic: {
+          method: "cognito",
+          customEmailLambdaTrigger: {
+            entry: path.join(
+              __dirname,
+              "../../../user/authentication/aws-cognito/triggers/CognitoCustomMessageTriggerLambda.ts"
+            ),
+            handler: "awsLambda",
+            bundling: {
+              minify: false,
+            },
+          },
         },
       },
     },

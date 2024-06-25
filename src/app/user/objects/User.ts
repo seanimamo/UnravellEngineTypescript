@@ -19,44 +19,45 @@ export class User implements IUser {
   @Expose() email: string;
   @Expose() authType: UserAuthType;
   @Expose() isAccountConfirmed: boolean;
-  @Expose() firstName?: string;
-  @Expose() lastName?: string;
   @TransformDate()
   @Expose()
   joinDate: Date;
+  @Expose() firstName?: string;
+  @Expose() lastName?: string;
+
   @Type(() => UserBanStatus)
   @Expose()
   banStatus?: UserBanStatus;
 
-  constructor(params: {
-    objectVersion: number | null;
-    userName: string;
-    id: string;
-    password: UserPassword;
-    email: string;
-    isAccountConfirmed: boolean;
-    joinDate: Date;
-    authType: UserAuthType;
-    firstName?: string;
-    lastName?: string;
-    banStatus?: UserBanStatus;
-  }) {
-    if (params.objectVersion === null) {
+  constructor(
+    objectVersion: number | null,
+    id: string,
+    userName: string,
+    password: UserPassword,
+    email: string,
+    isAccountConfirmed: boolean,
+    joinDate: Date,
+    authType: UserAuthType,
+    firstName?: string,
+    lastName?: string,
+    banStatus?: UserBanStatus
+  ) {
+    if (objectVersion === null) {
       this.objectVersion = 1;
     } else {
-      this.objectVersion = params.objectVersion;
+      this.objectVersion = objectVersion;
     }
 
-    this.userName = params.userName;
-    this.password = params.password;
-    this.id = params.id;
-    this.email = params.email;
-    this.isAccountConfirmed = params.isAccountConfirmed;
-    this.firstName = params.firstName;
-    this.lastName = params.lastName;
-    this.joinDate = params.joinDate;
-    this.authType = params.authType;
-    this.banStatus = params.banStatus;
+    this.userName = userName;
+    this.password = password;
+    this.id = id;
+    this.email = email;
+    this.isAccountConfirmed = isAccountConfirmed;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.joinDate = joinDate;
+    this.authType = authType;
+    this.banStatus = banStatus;
   }
 
   static validate(user: User) {

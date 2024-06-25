@@ -50,7 +50,7 @@ export abstract class BasicStripeSubscriptionCacheDynamoDbRepo
   /**
    * Validates the data within an {@link IStripeSubscriptionCache} is safe to be persisted to a database.
    */
-  abstract validate(stripeSubscription: IStripeSubscriptionCache): void;
+  validate(stripeSubscription: IStripeSubscriptionCache): void {}
 
   createPartitionKey = (stripeSubscription: IStripeSubscriptionCache) => {
     return stripeSubscription.customerId;

@@ -5,6 +5,7 @@ import {
   DeleteItemCommandInput,
   DeleteItemCommandOutput,
   DynamoDBClient,
+  ListTablesCommand,
   PutItemCommand,
   PutItemCommandInput,
   PutItemCommandOutput,

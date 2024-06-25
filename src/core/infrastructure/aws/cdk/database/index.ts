@@ -5,5 +5,5 @@ export { DynamoDBStack } from "./dynamodb-stack";
  * This enables modularity with different types of databases in the future.
  */
 export interface IDatabaseTableData {
-    databaseType: "dynamodb";
+  databaseType: "dynamodb";
 }
