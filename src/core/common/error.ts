@@ -10,7 +10,7 @@ export class CodedError extends Error {
   public readonly code: string;
 
   constructor(message: string, code: string) {
-    const messageWithType = `${code}::${message}`;
+    const messageWithType = `::${code}::${message}`;
     super(messageWithType);
     this.code = code;
   }

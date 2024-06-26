@@ -65,7 +65,11 @@ export class BasicCognitoCustomMessageEventHandler
       event.response.emailSubject = `Your ${AWS_INFRA_CONFIG.appName} Account Verification Link`;
       event.response.emailMessage = this.createWelcomeVerifyCodeEmailTemplate({
         firstName: event.request.userAttributes.given_name,
-        verifyCodeLink: `${process.env.FRONT_END_VERIFY_CODE_URL}?code=${event.request.codeParameter}`,
+        verifyCodeLink: `${
+          process.env.FRONT_END_VERIFY_CODE_URL
+        }?email${encodeURIComponent(event.request.userAttributes.email)}&code=${
+          event.request.codeParameter
+        }`,
         appName: AWS_INFRA_CONFIG.appName,
         companyName: AWS_INFRA_CONFIG.appName,
       });
