@@ -21,9 +21,6 @@ export class BasicCognitoCustomMessageEventHandler
     event: CustomMessageTriggerEvent
   ): Promise<CustomMessageTriggerEvent> {
     console.log("recieved CustomEmailSenderTriggerEvent: ", event);
-    console.log("event.request: ", event.request);
-    console.log("user attributes: ", event.request.userAttributes);
-
     if (event.triggerSource === "CustomMessage_SignUp") {
       await this.handleSignUp(event);
       return event;
@@ -39,41 +36,36 @@ export class BasicCognitoCustomMessageEventHandler
    * Handles a incoming new Sign Up event from AWS Cognito, customizing the email subject and body that gets send to the end user
    */
   private async handleSignUp(event: CustomMessageSignUpTriggerEvent) {
-    console.log("mock handling sign up event....");
+    const loggedEvent = { ...event };
+    loggedEvent.request.clientMetadata!["rawPassword"] = "***"; // we need to redact this from our logs.
+    console.log("recieved pre sign up event: ", loggedEvent);
 
-    if (event.request.codeParameter) {
-      console.log("event has code!");
-      event.response.emailSubject = `Welcome to ${AWS_INFRA_CONFIG.appName}`;
-      event.response.emailMessage = this.createWelcomeVerifyCodeEmailTemplate({
-        firstName: event.request.userAttributes.given_name,
-        verifyCodeLink: `${process.env.FRONT_END_VERIFY_CODE_URL}?code=${event.request.codeParameter}`,
-        appName: AWS_INFRA_CONFIG.appName,
-        companyName: AWS_INFRA_CONFIG.appName,
-      });
-    }
+    event.response.emailSubject = `Welcome to ${AWS_INFRA_CONFIG.appName}`;
+    event.response.emailMessage = this.createWelcomeVerifyCodeEmailTemplate({
+      firstName: event.request.userAttributes.given_name,
+      verifyCodeLink: `${process.env.FRONT_END_VERIFY_CODE_URL}?email=${event.request.userAttributes.email}&code=${event.request.codeParameter}`,
+      appName: AWS_INFRA_CONFIG.appName,
+      companyName: AWS_INFRA_CONFIG.appName,
+    });
   }
 
   /**
    * Handles a incoming new resend code event from AWS Cognito, customizing the email subject and body that gets send to the end user
    */
   private async handleResendCode(event: CustomMessageResendCodeTriggerEvent) {
-    console.log("mock handling resend code event....");
+    console.log("recieved resend code event: ", event);
 
-    if (event.request.codeParameter) {
-      console.log("event has code!");
-
-      event.response.emailSubject = `Your ${AWS_INFRA_CONFIG.appName} Account Verification Link`;
-      event.response.emailMessage = this.createWelcomeVerifyCodeEmailTemplate({
-        firstName: event.request.userAttributes.given_name,
-        verifyCodeLink: `${
-          process.env.FRONT_END_VERIFY_CODE_URL
-        }?email${encodeURIComponent(event.request.userAttributes.email)}&code=${
-          event.request.codeParameter
-        }`,
-        appName: AWS_INFRA_CONFIG.appName,
-        companyName: AWS_INFRA_CONFIG.appName,
-      });
-    }
+    event.response.emailSubject = `Your ${AWS_INFRA_CONFIG.appName} Account Verification Link`;
+    event.response.emailMessage = this.createWelcomeVerifyCodeEmailTemplate({
+      firstName: event.request.userAttributes.given_name,
+      verifyCodeLink: `${
+        process.env.FRONT_END_VERIFY_CODE_URL
+      }?email${encodeURIComponent(event.request.userAttributes.email)}&code=${
+        event.request.codeParameter
+      }`,
+      appName: AWS_INFRA_CONFIG.appName,
+      companyName: AWS_INFRA_CONFIG.appName,
+    });
   }
 
   private createWelcomeVerifyCodeEmailTemplate(params: {
