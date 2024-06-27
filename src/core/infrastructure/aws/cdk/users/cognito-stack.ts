@@ -43,11 +43,17 @@ type CognitoStackProps = {
    */
   appDisplayName: string;
   /**
-   * The URL of your applications front end for verifying a login code.
+   * The URL of your applications front end for verifying an account login code.
    * It is expected that the end of the url will accept the code as query parameter
    * @example https://www.myApp.com/account/verify/code
    */
   frontEndVerifyAccountCodeURL: string;
+  /**
+   * The URL of your applications front end for resetting a password
+   * It is expected that the end of the url will accept the code as query parameter
+   * @example https://www.myApp.com/account/verify/reset-password
+   */
+  frontEndPasswordResetCodeURL: string;
   /**
    * This will be necessary so we can automatically send emails using cognito
    * for various auth flows such as password resets from your own url.
@@ -371,6 +377,8 @@ export class CognitoStack extends Stack {
         environment: {
           ...lambdaConfig.environment,
           FRONT_END_VERIFY_CODE_URL: this.props.frontEndVerifyAccountCodeURL,
+          FRONT_END_RESET_PASSWORD_CODE_URL:
+            this.props.frontEndPasswordResetCodeURL,
         },
         initialPolicy: [...(lambdaConfig.initialPolicy ?? [])],
         bundling: {

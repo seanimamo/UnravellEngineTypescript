@@ -43,7 +43,8 @@ coreAppInfraBuilder.buildAppInfra({
       cognito: {
         region: AWS_INFRA_CONFIG.deploymentRegion,
         // The URL cognito will send to users emails for account verification
-        frontEndVerifyAccountCodeURL: `https://wwww.beta-${AWS_INFRA_CONFIG.dns.primaryAppDomain}/account/verify`,
+        frontEndVerifyAccountCodeURL: `https://www.beta-${AWS_INFRA_CONFIG.dns.primaryAppDomain}/account/verify`,
+        frontEndPasswordResetCodeURL: `https://www.beta-${AWS_INFRA_CONFIG.dns.primaryAppDomain}/account/reset-password`,
         // Configuration for our custom lambda function that runs during user signups
         preSignupLambdaTriggerConfig: {
           // The path to the file our lambda file is in

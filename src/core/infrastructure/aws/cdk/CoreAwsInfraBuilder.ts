@@ -42,6 +42,7 @@ export interface CreateUserAuthInfraProps {
   cognito: {
     region: string;
     frontEndVerifyAccountCodeURL: string;
+    frontEndPasswordResetCodeURL: string;
     preSignupLambdaTriggerConfig: CustomNodeJsLambdaConfig;
     postConfirmationLambdaTriggerConfig: CustomNodeJsLambdaConfig;
     /**
@@ -342,6 +343,7 @@ export class CoreAwsInfraBuilder {
 
     const {
       frontEndVerifyAccountCodeURL,
+      frontEndPasswordResetCodeURL,
       preSignupLambdaTriggerConfig,
       postConfirmationLambdaTriggerConfig,
       mailingLogic,
@@ -367,6 +369,7 @@ export class CoreAwsInfraBuilder {
         userDbTable: dependantInfra.databaseStack.userTableData,
         appDisplayName: this.appName,
         frontEndVerifyAccountCodeURL,
+        frontEndPasswordResetCodeURL,
         emailInfra: dependantInfra.emailInfra,
         preSignupLambdaTriggerConfig,
         postConfirmationLambdaTriggerConfig,

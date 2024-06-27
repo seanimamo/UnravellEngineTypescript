@@ -1,4 +1,5 @@
 import {
+  CustomMessageForgotPasswordTriggerEvent,
   CustomMessageResendCodeTriggerEvent,
   CustomMessageSignUpTriggerEvent,
   CustomMessageTriggerEvent,
@@ -27,6 +28,8 @@ export class BasicCognitoCustomMessageEventHandler
     } else if (event.triggerSource === "CustomMessage_ResendCode") {
       await this.handleResendCode(event);
       return event;
+    } else if (event.triggerSource === "CustomMessage_ForgotPassword") {
+      await this.handleResetPasswordCode(event);
     }
 
     return event;
@@ -38,12 +41,30 @@ export class BasicCognitoCustomMessageEventHandler
   private async handleSignUp(event: CustomMessageSignUpTriggerEvent) {
     const loggedEvent = { ...event };
     loggedEvent.request.clientMetadata!["rawPassword"] = "***"; // we need to redact this from our logs.
-    console.log("recieved pre sign up event: ", loggedEvent);
+    console.log("recieved sign up event: ", loggedEvent);
 
     event.response.emailSubject = `Welcome to ${AWS_INFRA_CONFIG.appName}`;
     event.response.emailMessage = this.createWelcomeVerifyCodeEmailTemplate({
       firstName: event.request.userAttributes.given_name,
       verifyCodeLink: `${process.env.FRONT_END_VERIFY_CODE_URL}?email=${event.request.userAttributes.email}&code=${event.request.codeParameter}`,
+      appName: AWS_INFRA_CONFIG.appName,
+      companyName: AWS_INFRA_CONFIG.appName,
+    });
+  }
+
+  /**
+   * Handles a incoming new forgot password event from AWS Cognito, customizing the email subject and body that gets send to the end user
+   */
+  private async handleResetPasswordCode(
+    event: CustomMessageForgotPasswordTriggerEvent
+  ) {
+    console.log("recieved forgot password event: ", event);
+
+    event.response.emailSubject = `Your ${AWS_INFRA_CONFIG.appName} Password Reset Code`;
+    event.response.emailMessage = this.createResetPasswordCodeEmailTemplate({
+      firstName: event.request.userAttributes.given_name,
+      verifyCodeLink: `${process.env.FRONT_END_RESET_PASSWORD_CODE_URL}?email=${event.request.userAttributes.email}&code=${event.request.codeParameter}`,
+      code: event.request.codeParameter,
       appName: AWS_INFRA_CONFIG.appName,
       companyName: AWS_INFRA_CONFIG.appName,
     });
@@ -68,6 +89,60 @@ export class BasicCognitoCustomMessageEventHandler
     });
   }
 
+  private createResetPasswordCodeEmailTemplate(params: {
+    firstName?: string;
+    verifyCodeLink: string;
+    code: string;
+    appName: string;
+    companyName: string;
+  }) {
+    return `<!DOCTYPE html>
+        <html lang="en">
+            <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Reset Password</title>
+            ${BasicCognitoCustomMessageEventHandler.getSharedEmailTemplateStyles()}
+            </head>
+            <body>
+                <table role="presentation">
+                    <tr>
+                        <td class="header">
+                            <h1>Your ${params.appName} Password Reset</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="content">
+                            <h2>Hi ${params.firstName ?? ""},</h2>
+                            <p>Your password reset code is: <strong>${
+                              params.code
+                            } </strong></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="linkButtonContent" style="text-align: center;">
+                            <a class='linkButton' href="${
+                              params.verifyCodeLink
+                            }">Verify your account
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="content">
+                            <p>Regards,</p>
+                            <p><strong>The ${params.appName} Team</strong></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="footer">
+                            © 2024 ${params.companyName}. All rights reserved.
+                        </td>
+                    </tr>
+                </table>
+            </body>
+        </html>`;
+  }
+
   private createWelcomeVerifyCodeEmailTemplate(params: {
     firstName?: string;
     verifyCodeLink: string;
@@ -80,70 +155,7 @@ export class BasicCognitoCustomMessageEventHandler
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Welcome Email</title>
-            <style>
-                body, table, td, a {
-                    font-family: Arial, sans-serif;
-                }
-                body {
-                    background-color: #f4f4f4;
-                    margin: 0;
-                    padding: 0;
-                }
-                table {
-                    border-spacing: 0;
-                    width: 100%;
-                    max-width: 600px;
-                    margin: 0 auto;
-                    background-color: #ffffff;
-                }
-                .header {
-                    background-color: #191F28;
-                    color: white;
-                    padding: 20px;
-                    text-align: center;
-                    font-size: 15px;
-                }
-                .content {
-                    padding: 40px;
-                    line-height: 1.6;
-                    background-color: #232E3A;
-                    color: #FFF;
-                    font-size: 16px;
-                }
-                .footer {
-                    background-color: #232E3A;
-                    color: #fff !important;
-                    padding: 25px;
-                    padding-left: 40px;
-                    padding-right: 40px;
-                    font-size: 14px;
-                } 
-                .verifyButtonContent {
-                    padding-left: 40px;
-                    padding-right: 40px;
-                    line-height: 1.6;
-                    background-color: #232E3A;
-                    color: #FFF;
-                    font-size: 16px;
-                }
-                .verifyButton {
-                    background-color: #7d4987;
-                    border-radius: 8px;
-                    color: #fff !important;
-                    display: inline-block;
-                    font-size: 16px;
-                    font-weight: 700;
-                    line-height: 20px;
-                    padding: 15px 0 15px 0;
-                    text-decoration: none;
-                    width: 200px;
-                }
-                .verifyButton:hover {
-                    background-color: #7635dc;
-                    border-radius: 25px;
-                    transition-duration: 250ms;
-                }
-            </style>
+           ${BasicCognitoCustomMessageEventHandler.getSharedEmailTemplateStyles()}
             </head>
             <body>
             <table role="presentation">
@@ -155,18 +167,17 @@ export class BasicCognitoCustomMessageEventHandler
                 <tr>
                     <td class="content">
                         <h2>Hi ${params.firstName ?? ""},</h2>
-                            <p>We're excited to have you onboard. Thank you for joining us! Please click this link to verify your account. </p>
+                            <p>We're excited to have you onboard. Lets start building your future. Please click this link to verify your account. </p>
                     </td>
                 </tr>
                 <tr>
-                    <td class="verifyButtonContent" style="text-align: center;">
-                        <a class='verifyButton' href="${
+                    <td class="linkButtonContent" style="text-align: center;">
+                        <a class='linkButton' href="${
                           params.verifyCodeLink
                         }">Verify your account
                         </a>
                     </td>
                 </tr>
-                
                 <tr>
                     <td class="content">
                         <p>Welcome aboard,</p>
@@ -181,5 +192,67 @@ export class BasicCognitoCustomMessageEventHandler
             </table>
             </body>
         </html>`;
+  }
+
+  private static getSharedEmailTemplateStyles() {
+    return ` <style>
+        body, table, td, a {
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #F9F6F0;
+            box-shadow: 0 4px 8px 0;
+        }
+        .header {
+            padding: 15px;
+            padding-left: 40px;
+            padding-right: 40px;
+            font-size: 12.5px;
+            text-align: center;
+        }
+        .content {
+            padding-bottom: 40px;
+            padding-left: 40px;
+            padding-right: 40px;
+            line-height: 1.6;
+            color: #000;
+            font-size: 16px;
+        }
+        .footer {
+        
+            color: black !important;
+            padding: 25px;
+            padding-left: 40px;
+            padding-right: 40px;
+            font-size: 14px;
+        } 
+        .linkButtonContent {
+            padding-left: 40px;
+            padding-right: 40px;
+            line-height: 1.6;
+            color: #FFF;
+            font-size: 16px;
+        }
+        .linkButton {
+            background-color: #8147be;
+            border-radius: 8px;
+            color: #fff !important;
+            display: inline-block;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 20px;
+            padding: 15px 0 15px 0;
+            text-decoration: none;
+            width: 200px;
+        }
+        </style>`;
   }
 }
