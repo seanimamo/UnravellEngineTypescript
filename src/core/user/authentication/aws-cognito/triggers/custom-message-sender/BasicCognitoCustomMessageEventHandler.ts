@@ -63,7 +63,7 @@ export class BasicCognitoCustomMessageEventHandler
     event.response.emailSubject = `Your ${AWS_INFRA_CONFIG.appName} Password Reset Code`;
     event.response.emailMessage = this.createResetPasswordCodeEmailTemplate({
       firstName: event.request.userAttributes.given_name,
-      verifyCodeLink: `${process.env.FRONT_END_RESET_PASSWORD_CODE_URL}?email=${event.request.userAttributes.email}&code=${event.request.codeParameter}`,
+      resetPasswordLink: `${process.env.FRONT_END_RESET_PASSWORD_CODE_URL}?email=${event.request.userAttributes.email}&code=${event.request.codeParameter}`,
       code: event.request.codeParameter,
       appName: AWS_INFRA_CONFIG.appName,
       companyName: AWS_INFRA_CONFIG.appName,
@@ -91,7 +91,7 @@ export class BasicCognitoCustomMessageEventHandler
 
   private createResetPasswordCodeEmailTemplate(params: {
     firstName?: string;
-    verifyCodeLink: string;
+    resetPasswordLink: string;
     code: string;
     appName: string;
     companyName: string;
@@ -105,37 +105,46 @@ export class BasicCognitoCustomMessageEventHandler
             ${BasicCognitoCustomMessageEventHandler.getSharedEmailTemplateStyles()}
             </head>
             <body>
-                <table role="presentation">
+                <table class="header">
                     <tr>
-                        <td class="header">
+                        <td>
                             <h1>Your ${params.appName} Password Reset</h1>
                         </td>
                     </tr>
+                </table>
+                <table class="content">
                     <tr>
-                        <td class="content">
+                        <td>
                             <h2>Hi ${params.firstName ?? ""},</h2>
-                            <p>Your password reset code is: <strong>${
-                              params.code
-                            } </strong></p>
+                            <p>
+                                Your password reset code is:
+                                <strong>
+                                    ${params.code}
+                                </strong>
+                            </p>
                         </td>
                     </tr>
                     <tr>
                         <td class="linkButtonContent" style="text-align: center;">
                             <a class='linkButton' href="${
-                              params.verifyCodeLink
-                            }">Verify your account
+                              params.resetPasswordLink
+                            }">Reset your password
                             </a>
                         </td>
                     </tr>
                     <tr>
-                        <td class="content">
-                            <p>Regards,</p>
+                        <td>
+                            <p>Warm Regards,</p>
                             <p><strong>The ${params.appName} Team</strong></p>
                         </td>
                     </tr>
+                </table>
+                <table class="footer">
                     <tr>
-                        <td class="footer">
+                        <td>
+                            <p>
                             © 2024 ${params.companyName}. All rights reserved.
+                            </p>
                         </td>
                     </tr>
                 </table>
@@ -158,49 +167,57 @@ export class BasicCognitoCustomMessageEventHandler
            ${BasicCognitoCustomMessageEventHandler.getSharedEmailTemplateStyles()}
             </head>
             <body>
-            <table role="presentation">
-                <tr>
-                    <td class="header">
-                        <h1> Welcome to ${params.appName}!</h1>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="content">
-                        <h2>Hi ${params.firstName ?? ""},</h2>
-                            <p>We're excited to have you onboard. Lets start building your future. Please click this link to verify your account. </p>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="linkButtonContent" style="text-align: center;">
-                        <a class='linkButton' href="${
-                          params.verifyCodeLink
-                        }">Verify your account
-                        </a>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="content">
-                        <p>Welcome aboard,</p>
-                        <p><strong>The ${params.appName} Team</strong></p>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="footer">
-                        © 2024 ${params.companyName}. All rights reserved.
-                    </td>
-                </tr>
-            </table>
+                <table class="header">
+                    <tr>
+                        <td>
+                            <h1> Welcome to ${params.appName}!</h1>
+                        </td>
+                    </tr>
+                </table>
+                <table class="content">
+                    <tr>
+                        <td class="contentSection">
+                            <h2>Hi ${params.firstName ?? ""},</h2>
+                            <p>
+                                We're excited to have you onboard. Lets start building your future. Please click this link to verify your account. 
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="linkButtonContent" style="text-align: center;">
+                            <a class='linkButton' href="${
+                              params.verifyCodeLink
+                            }">
+                                Verify your account
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="contentSection">
+                            <p>Welcome aboard,</p>
+                            <p><strong>The ${params.appName} Team</strong></p>
+                        </td>
+                    </tr>
+                </table>
+                <table class="footer">
+                    <tr>
+                        <td>
+                            <p>
+                            © 2024 ${params.companyName}. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
             </body>
         </html>`;
   }
 
   private static getSharedEmailTemplateStyles() {
-    return ` <style>
+    return `<style>
         body, table, td, a {
             font-family: Arial, sans-serif;
         }
         body {
-            background-color: #f4f4f4;
             margin: 0;
             padding: 0;
         }
@@ -208,26 +225,23 @@ export class BasicCognitoCustomMessageEventHandler
             width: 100%;
             max-width: 600px;
             margin: 0 auto;
-            background-color: #F9F6F0;
-            box-shadow: 0 4px 8px 0;
+            background-color: #f9f8f7;
         }
         .header {
-            padding: 15px;
-            padding-left: 40px;
-            padding-right: 40px;
+            padding: 10px;
             font-size: 12.5px;
             text-align: center;
+            background-color: #1C252E;
+            color: white;
         }
         .content {
-            padding-bottom: 40px;
-            padding-left: 40px;
-            padding-right: 40px;
+            padding: 60px;
+            padding-top: 40px;
             line-height: 1.6;
             color: #000;
             font-size: 16px;
         }
         .footer {
-        
             color: black !important;
             padding: 25px;
             padding-left: 40px;
@@ -237,12 +251,14 @@ export class BasicCognitoCustomMessageEventHandler
         .linkButtonContent {
             padding-left: 40px;
             padding-right: 40px;
+            padding: 30px;
             line-height: 1.6;
             color: #FFF;
             font-size: 16px;
         }
         .linkButton {
             background-color: #8147be;
+            color: white;
             border-radius: 8px;
             color: #fff !important;
             display: inline-block;
@@ -253,6 +269,6 @@ export class BasicCognitoCustomMessageEventHandler
             text-decoration: none;
             width: 200px;
         }
-        </style>`;
+    </style>`;
   }
 }
