@@ -1,6 +1,5 @@
 import { PreSignUpTriggerEvent } from "aws-lambda";
-import { ApiError, InvalidRequestApiError } from "../../../../../api/ApiError";
-import { DataValidationError, DataValidator } from "@/core/util";
+import { DataValidator } from "@/core/util";
 import {
   IUser,
   IUserResourceFactory,
@@ -11,6 +10,9 @@ import { IUserRepo } from "@/core/user/database";
 import { IStripeUserDataRepo } from "../../../../../payments/stripe/user-data/database";
 import Stripe from "stripe";
 import { IStripeUserData } from "../../../../../payments/stripe/user-data";
+import { SignUpClosedError } from "@/core/api/public/error";
+import { z } from "zod";
+import { validateApiRequestWithZod } from "@/core/api/utils/validationUtils";
 
 /**
  * This is a basic implementation of {@link ICognitoPreSignUpEventHandler } which has logic for
@@ -48,50 +50,25 @@ export class BasicCognitoPreSignUpEventHandler
     return process.env.IS_SIGN_UP_ALLOWED == "true" ?? false;
   }
 
-  validateRequest(event: PreSignUpTriggerEvent) {
-    try {
-      BasicCognitoPreSignUpEventHandler.dataValidator
-        .validate(event.request.userAttributes["email"], "userAttributes.email")
-        .notUndefined()
-        .notNull()
-        .isString()
-        .notEmpty();
-      BasicCognitoPreSignUpEventHandler.dataValidator
-        .validate(
-          event.request.userAttributes.given_name,
-          "userAttributes.given_name"
-        )
-        .notNull()
-        .isString()
-        .notEmpty();
-      BasicCognitoPreSignUpEventHandler.dataValidator
-        .validate(
-          event.request.userAttributes.given_name,
-          "userAttributes.given_name"
-        )
-        .notNull()
-        .isString()
-        .notEmpty();
-      BasicCognitoPreSignUpEventHandler.dataValidator
-        .validate(event.request.clientMetadata, "clientMetadata")
-        .notUndefined()
-        .notNull();
-      BasicCognitoPreSignUpEventHandler.dataValidator
-        .validate(
-          event.request.clientMetadata!["rawPassword"],
-          "clientMetadata.rawPassword"
-        )
-        .notUndefined()
-        .notNull()
-        .isString()
-        .notEmpty();
-    } catch (error) {
-      if (error instanceof DataValidationError) {
-        throw new InvalidRequestApiError(
-          `Request has one or more missing or invalid attributes: ${error.message}`
-        );
-      }
-    }
+  extractAndValidateEvent(event: PreSignUpTriggerEvent) {
+    const eventPayload = {
+      userName: event.userName,
+      email: event.request.userAttributes.email,
+      given_name: event.request.userAttributes.given_name,
+      family_name: event.request.userAttributes.family_name,
+      rawPassword: event.request.clientMetadata?.rawPassword,
+    };
+
+    const validationSchema = z.object({
+      email: z.string().email(),
+      given_name: z.string().min(1),
+      family_name: z.string().min(1),
+      rawPassword: z.string().min(1),
+    });
+
+    validateApiRequestWithZod(validationSchema, eventPayload);
+
+    return eventPayload;
   }
 
   async handleEvent(event: PreSignUpTriggerEvent) {
@@ -103,13 +80,13 @@ export class BasicCognitoPreSignUpEventHandler
       throw new SignUpClosedError();
     }
 
-    this.validateRequest(event);
+    const eventPayload = this.extractAndValidateEvent(event);
 
-    const userName = event.userName; // This will be a UUID when cognito is not configured to have a username.
-    const email = event.request.userAttributes["email"];
-    const rawPassword = event.request.clientMetadata!["rawPassword"];
-    const firstName = event.request.userAttributes.given_name;
-    const lastName = event.request.userAttributes.family_name;
+    const userName = eventPayload.userName; // This will be a UUID when cognito is not configured to have a username.
+    const email = eventPayload.email;
+    const rawPassword = eventPayload.rawPassword;
+    const firstName = eventPayload.given_name;
+    const lastName = eventPayload.family_name;
 
     const user = this.userFactory.createUser({
       email: email,
@@ -164,12 +141,5 @@ export class BasicCognitoPreSignUpEventHandler
     console.log(
       `successfully created and saved new stripe customer with id ${customerId} for user with id ${user.id}`
     );
-  }
-}
-
-export class SignUpClosedError extends ApiError {
-  static type = "SignUpClosed";
-  constructor(message: string = SignUpClosedError.type, statusCode = 400) {
-    super(statusCode, SignUpClosedError.type, message);
   }
 }

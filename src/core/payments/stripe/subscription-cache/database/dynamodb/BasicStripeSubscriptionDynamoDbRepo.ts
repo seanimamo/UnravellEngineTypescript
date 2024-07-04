@@ -5,18 +5,18 @@ import {
   UpdateItemCommand,
   UpdateItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
-import { ISerializer } from "../../../../../database";
+import {
+  ISerializer,
+  InvalidParametersDbError,
+  ObjectDoesNotExistDbError,
+} from "@/core/database";
 import {
   GENERIC_DYNAMODB_INDEXES,
   DynamoDbRepository,
   KeyFactory,
-} from "../../../../../database/dynamodb";
+} from "@/core/database/dynamodb";
 import Stripe from "stripe";
-import {
-  InvalidParametersError,
-  ObjectDoesNotExistError,
-} from "../../../../../database/error";
-import { retryAsyncMethodWithExpBackoffJitter } from "../../../../../util";
+import { retryAsyncMethodWithExpBackoffJitter } from "@/core/util";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
 import { IStripeSubscriptionCacheRepo } from "../../IStripeSubscriptionCacheRepo";
 import { IStripeSubscriptionCache } from "../../IStripeSubscriptionCache";
@@ -165,7 +165,7 @@ export abstract class BasicStripeSubscriptionCacheDynamoDbRepo
       );
     const latestStripeInfo = getLatestStripeInfoResponse.data;
     if (!latestStripeInfo) {
-      throw new ObjectDoesNotExistError(
+      throw new ObjectDoesNotExistDbError(
         "Cannot update customer stripe data that does not exist"
       );
     }
@@ -198,7 +198,7 @@ export abstract class BasicStripeSubscriptionCacheDynamoDbRepo
     }
 
     if (updateExpressionCommands.length === 0) {
-      throw new InvalidParametersError(
+      throw new InvalidParametersDbError(
         "Cannot attempt userStripeSubscription update with no changes"
       );
     }

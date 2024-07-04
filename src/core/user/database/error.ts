@@ -1,4 +1,4 @@
-import { CodedError } from "@/core/common/error";
+import { CodedError } from "@/core/common";
 
 export const USER_REPO_ERROR_CODES = {
   USERNAME_ALREADY_EXISTS: "USER_REPO_USERNAME_ALREADY_EXISTS",

@@ -2,12 +2,14 @@ import {
   PostConfirmationTriggerEvent,
   PreSignUpTriggerEvent,
 } from "aws-lambda";
-import { InvalidRequestApiError } from "../../../../../api/ApiError";
+import { InvalidRequestApiError } from "@/core/api/public/error";
 import { DataValidationError, DataValidator } from "@/core/util";
 import { IUserResourceFactory } from "@/core/user/types";
 import { ICognitoPostConfirmationUpEventHandler } from ".";
-import { ObjectDoesNotExistError } from "@/core/database/error";
+import { ObjectDoesNotExistDbError } from "@/core/database";
 import { IUserRepo } from "@/core/user/database";
+import { validateApiRequestWithZod } from "@/core/api/utils/validationUtils";
+import { z } from "zod";
 
 /**
  * This is a generic implementation of {@link (ICognitoPostConfirmationUpEventHandler)} which has logic for
@@ -64,23 +66,12 @@ export class BasicCognitoPostConfirmationEventHandler
   async handlePasswordResetEvent(event: PostConfirmationTriggerEvent) {
     console.info("Event source is a password reset");
     // Validate request object
-    try {
-      BasicCognitoPostConfirmationEventHandler.dataValidator
-        .validate(
-          event.request.clientMetadata!["rawPassword"],
-          "clientMetadata.rawPassword"
-        )
-        .notUndefined()
-        .notNull()
-        .isString()
-        .notEmpty();
-    } catch (error) {
-      if (error instanceof DataValidationError) {
-        throw new InvalidRequestApiError(
-          `Request has one or more missing or invalid attributes: ${error.message}`
-        );
-      }
-    }
+    const validationSchema = z.object({
+      rawPassword: z.string().min(1),
+    });
+
+    validateApiRequestWithZod(validationSchema, event.request.clientMetadata);
+
     const rawPassword = event.request.clientMetadata!["rawPassword"];
 
     const user = await this.userRepo.getById(event.userName);
@@ -105,20 +96,13 @@ export class BasicCognitoPostConfirmationEventHandler
   async handlePostConfirmationSignUpEvent(event: PostConfirmationTriggerEvent) {
     console.info("Event source is a email confirmation");
     // Validate request object
-    try {
-      BasicCognitoPostConfirmationEventHandler.dataValidator
-        .validate(event.request.userAttributes["email"], "userAttributes.email")
-        .notUndefined()
-        .notNull()
-        .isString()
-        .notEmpty();
-    } catch (error) {
-      if (error instanceof DataValidationError) {
-        throw new InvalidRequestApiError(
-          `Request has one or more missing or invalid attributes: ${error.message}`
-        );
-      }
-    }
+    const validationSchema = z.object({
+      email: z.string().min(1),
+    });
+
+    validateApiRequestWithZod(validationSchema, {
+      email: event.request.userAttributes["email"],
+    });
 
     const isAccountConfirmed =
       event.request.userAttributes["email_verified"] === "true";
@@ -136,7 +120,7 @@ export class BasicCognitoPostConfirmationEventHandler
       });
     } catch (error) {
       console.error("failed to update user isAccountConfirmed", error);
-      if (error instanceof ObjectDoesNotExistError) {
+      if (error instanceof ObjectDoesNotExistDbError) {
         throw new InvalidRequestApiError("User does not exist");
       }
       throw error;

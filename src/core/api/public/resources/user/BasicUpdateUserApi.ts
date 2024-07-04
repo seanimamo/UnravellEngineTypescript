@@ -1,37 +1,37 @@
-import {
-  InvalidRequestApiError,
-  RetryAttemptsExhaustedApiError,
-} from "../../../ApiError";
 import { IUserRepo } from "@/core/user/database";
 import {
   DataValidator,
   DataValidationError,
   RetryAttemptsExhaustedError,
+  combineZodErrorMessages,
 } from "@/core/util";
-import { IApiResponse } from "../../IApiResponse";
-import { IApiRequestProcessor } from "../../IApiRequestProcessor";
-import { IApiRequest } from "../../IApiRequest";
+import { IApiRequestProcessor, IHttpApiResponse } from "../..";
+import {
+  InvalidRequestApiError,
+  RetryAttemptsExhaustedApiError,
+} from "../../error";
+import { z } from "zod";
+import { validateApiRequestWithZod } from "@/core/api/utils/validationUtils";
 
-export interface IUpdateUserApiRequest extends IApiRequest {
+export interface IUpdateUserApiRequest {
   userId: string;
-  firstName: string;
-  lastName: string;
+  firstName?: string;
+  lastName?: string;
 }
 
-export interface IUpdateUserApiResponse extends IApiResponse {}
+export type IUpdateUserApiResponseData = null;
 
 /**
  * An abstract implementation of {@link IApiRequestProcessor} with basic logic for updating user information.
  *
  * @remarks Feel free to make your own class that implements {@link IApiRequestProcessor} if extending this implementation is not sufficient
  */
-export abstract class BasicUpdateUserApi<TSourceEvent, TAuthorizationData>
+export abstract class BasicUpdateUserApi<TSourceEvent>
   implements
     IApiRequestProcessor<
       TSourceEvent,
-      TAuthorizationData,
       IUpdateUserApiRequest,
-      IUpdateUserApiResponse
+      IUpdateUserApiResponseData
     >
 {
   private readonly dataValidator = new DataValidator();
@@ -51,41 +51,24 @@ export abstract class BasicUpdateUserApi<TSourceEvent, TAuthorizationData>
    * @remarks Consider extending this if you have your own implementation of {@link IUpdateUserApiRequest}
    */
   async validateRequestData(request: IUpdateUserApiRequest): Promise<void> {
-    try {
-      this.dataValidator
-        .validate(request.id, "request.id")
-        .notUndefined()
-        .notNull()
-        .isString()
-        .notEmpty();
-      this.dataValidator
-        .validate(request.firstName, "firstName")
-        .ifNotUndefined()
-        .notNull()
-        .isString()
-        .notEmpty();
-      this.dataValidator
-        .validate(request.lastName, "lastName")
-        .ifNotUndefined()
-        .notNull()
-        .isString()
-        .notEmpty();
-    } catch (error) {
-      if (error instanceof DataValidationError) {
-        throw new InvalidRequestApiError(
-          `Request has one or more missing or invalid attributes: ${error.message}`
-        );
-      }
-      throw error;
-    }
+    const validationSchema = z.object({
+      userId: z.string().min(1),
+      firstName: z.string().min(4).optional(),
+      lastName: z.string().min(4).optional(),
+    });
+
+    validateApiRequestWithZod(validationSchema, request);
   }
 
   /**
    * Analyze the API request parameters and the requesters auth data and determine
-   * if they are allowed to
+   * if they are allowed to.
+   *
+   * @remarks this was added here to force users to atleast think about implementation authorization
+   * for this endpoint.
    */
   abstract authorizeRequest(
-    authData: TAuthorizationData,
+    event: TSourceEvent,
     request: IUpdateUserApiRequest
   ): Promise<void>;
 
@@ -94,7 +77,7 @@ export abstract class BasicUpdateUserApi<TSourceEvent, TAuthorizationData>
    */
   async processRequest(
     request: IUpdateUserApiRequest
-  ): Promise<IUpdateUserApiResponse> {
+  ): Promise<IHttpApiResponse<IUpdateUserApiResponseData>> {
     const getUserResponse = await this.userRepo.getById(request.userId);
     const user = getUserResponse.data;
 
@@ -109,7 +92,6 @@ export abstract class BasicUpdateUserApi<TSourceEvent, TAuthorizationData>
 
     try {
       await this.userRepo.update(user.id, {
-        userName: request.userName,
         firstName: request.firstName,
         lastName: request.lastName,
       });

@@ -13,7 +13,7 @@ import {
   QueryCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { UniqueObjectAlreadyExistsError } from "../error";
+import { UniqueObjectAlreadyExistsDbError } from "../DatabaseError";
 import { PaginatedDynamoDbResponse } from "./PaginatedDynamoDbResponse";
 import { IDatabaseResponse, ISerializer } from "..";
 import { DynamoDbIndex, GENERIC_DYNAMODB_INDEXES } from "./DynamoDBConstants";
@@ -99,21 +99,32 @@ export abstract class DynamoDbRepository<T extends Record<any, any>> {
       };
     } catch (error) {
       if (error instanceof ConditionalCheckFailedException) {
-        throw new UniqueObjectAlreadyExistsError();
+        throw new UniqueObjectAlreadyExistsDbError();
       }
       throw error;
     }
   }
 
-  async delete(object: T): Promise<IDatabaseResponse<DeleteItemCommandOutput>> {
+  async deleteByObject(
+    object: T
+  ): Promise<IDatabaseResponse<DeleteItemCommandOutput>> {
+    const partitionKey = this.createPartitionKey(object);
+    const sortKey = this.createSortKey(object);
+    return await this._delete(partitionKey, sortKey);
+  }
+
+  async _delete(
+    partitionKey: string,
+    sortKey: string
+  ): Promise<IDatabaseResponse<DeleteItemCommandOutput>> {
     const commandInput: DeleteItemCommandInput = {
       TableName: this.tableName,
       Key: {
         [GENERIC_DYNAMODB_INDEXES.PRIMARY.partitionKeyName]: {
-          S: this.createPartitionKey(object),
+          S: partitionKey,
         },
         [GENERIC_DYNAMODB_INDEXES.PRIMARY.sortKeyName]: {
-          S: this.createSortKey(object),
+          S: sortKey,
         },
       },
       ReturnValues: "ALL_OLD",
@@ -121,6 +132,7 @@ export abstract class DynamoDbRepository<T extends Record<any, any>> {
     const response = await this.client.send(
       new DeleteItemCommand(commandInput)
     );
+
     return {
       data: response,
     };

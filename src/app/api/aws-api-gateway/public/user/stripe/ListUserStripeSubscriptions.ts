@@ -1,17 +1,11 @@
-import {
-  APIGatewayProxyCognitoAuthorizer,
-  APIGatewayProxyWithCognitoAuthorizerEvent,
-} from "aws-lambda";
+import { APIGatewayProxyWithCognitoAuthorizerEvent } from "aws-lambda";
 import {
   BasicListUserStripeSubcriptionsApi,
   IListUserStripeSubcriptionApiRequest,
 } from "../../../../../../core/api/public/resources/user/stripe/BasicListUserStripeSubcriptionsApi";
-import { UnauthorizedApiError } from "../../../../../../core/api/ApiError";
+import { confirmCognitoClaimUsernameMatches } from "@/core/api/utils/aws-api-gateway/utils";
 
-export class ListUserStripeSubscriptions extends BasicListUserStripeSubcriptionsApi<
-  APIGatewayProxyWithCognitoAuthorizerEvent,
-  APIGatewayProxyCognitoAuthorizer
-> {
+export class ListUserStripeSubscriptions extends BasicListUserStripeSubcriptionsApi<APIGatewayProxyWithCognitoAuthorizerEvent> {
   /**
    * Extracts the API request data from the source api event
    */
@@ -27,14 +21,14 @@ export class ListUserStripeSubscriptions extends BasicListUserStripeSubcriptions
    * Users can only request their own stripe subscription data
    */
   async authorizeRequest(
-    authData: APIGatewayProxyCognitoAuthorizer,
+    event: APIGatewayProxyWithCognitoAuthorizerEvent,
     request: IListUserStripeSubcriptionApiRequest
   ): Promise<void> {
-    const cognitoUsername = authData.claims["cognitoUsername"];
-    if (request.userId !== cognitoUsername) {
-      throw new UnauthorizedApiError(
-        `Cognito auth data username does not match request uuid`
-      );
-    }
+    console.info(
+      "Cognito Authorizor:",
+      JSON.stringify(event.requestContext.authorizer)
+    );
+
+    confirmCognitoClaimUsernameMatches(request.userId, event);
   }
 }

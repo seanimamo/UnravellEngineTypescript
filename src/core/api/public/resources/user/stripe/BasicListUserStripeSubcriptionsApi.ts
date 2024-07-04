@@ -1,43 +1,29 @@
-import {
-  InternalServerApiError,
-  InvalidRequestApiError,
-} from "../../../../ApiError";
 import { DataValidator, DataValidationError } from "../../../../../util";
-import { IPaginatedApiResponse } from "../../../IApiResponse";
-import { IApiRequestProcessor } from "../../../IApiRequestProcessor";
-import { IApiRequest } from "../../../IApiRequest";
 import { IStripeSubscriptionCacheRepo } from "../../../../../payments/stripe/subscription-cache/database";
 import { IStripeSubscriptionCache } from "../../../../../payments/stripe/subscription-cache";
 import { IStripeUserDataRepo } from "../../../../../payments/stripe/user-data/database";
+import { IApiRequestProcessor, IPaginatedApiResponse } from "../../..";
+import { InternalServerApiError, InvalidRequestApiError } from "../../../error";
 
-export interface IListUserStripeSubcriptionApiRequest extends IApiRequest {
+export interface IListUserStripeSubcriptionApiRequest {
   userId: string;
 }
 
-export interface IListUserStripeSubcriptionApiResponse
-  extends IPaginatedApiResponse {
-  body: {
-    data: {
-      stripeSubscriptions: IStripeSubscriptionCache[];
-    };
-    paginationToken: unknown;
-  };
-}
+export type IListUserStripeSubcriptionApiResponseData = {
+  subscriptions: IStripeSubscriptionCache[];
+};
 
 /**
  * An abstract implementation of {@link IApiRequestProcessor} with basic logic for retrieing user stripe subscription data
  *
  * @remarks Feel free to make your own class that implements {@link IApiRequestProcessor} if extending this implementation is not sufficient
  */
-export abstract class BasicListUserStripeSubcriptionsApi<
-  TSourceEvent,
-  TAuthorizationData
-> implements
+export abstract class BasicListUserStripeSubcriptionsApi<TSourceEvent>
+  implements
     IApiRequestProcessor<
       TSourceEvent,
-      TAuthorizationData,
       IListUserStripeSubcriptionApiRequest,
-      IListUserStripeSubcriptionApiResponse
+      IListUserStripeSubcriptionApiResponseData
     >
 {
   private readonly dataValidator = new DataValidator();
@@ -66,7 +52,7 @@ export abstract class BasicListUserStripeSubcriptionsApi<
   ): Promise<void> {
     try {
       this.dataValidator
-        .validate(request.id, "request.id")
+        .validate(request.userId, "request.userId")
         .notUndefined()
         .notNull()
         .isString()
@@ -86,7 +72,7 @@ export abstract class BasicListUserStripeSubcriptionsApi<
    * if they are allowed to
    */
   abstract authorizeRequest(
-    authData: TAuthorizationData,
+    event: TSourceEvent,
     request: IListUserStripeSubcriptionApiRequest
   ): Promise<void>;
 
@@ -95,7 +81,7 @@ export abstract class BasicListUserStripeSubcriptionsApi<
    */
   async processRequest(
     request: IListUserStripeSubcriptionApiRequest
-  ): Promise<IListUserStripeSubcriptionApiResponse> {
+  ): Promise<IPaginatedApiResponse<IListUserStripeSubcriptionApiResponseData>> {
     const userStripeDataResponse = await this.userStripeDataRepo.getByUserId(
       request.userId
     );
@@ -117,7 +103,7 @@ export abstract class BasicListUserStripeSubcriptionsApi<
       statusCode: 200,
       body: {
         data: {
-          stripeSubscriptions: listStripeSubscriptionsResponse.data,
+          subscriptions: listStripeSubscriptionsResponse.data,
         },
         paginationToken: listStripeSubscriptionsResponse.paginationToken,
       },

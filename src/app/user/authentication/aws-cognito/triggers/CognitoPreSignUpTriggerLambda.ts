@@ -12,8 +12,7 @@ import { PreSignUpTriggerEvent, PreSignUpTriggerHandler } from "aws-lambda";
  */
 const preSignUpEventHandler = new BasicCognitoPreSignUpEventHandler(
   new UserResourceFactory(
-    new DynamoDBClient({ region: AWS_INFRA_CONFIG.deploymentRegion }),
-    process.env.USER_DB_TABLE_NAME!
+    new DynamoDBClient({ region: AWS_INFRA_CONFIG.deploymentRegion })
   )
   // TODO: Uncomment this once stripe account is ready.
   // new Stripe(process.env.STRIPE_SECRET_KEY!, {

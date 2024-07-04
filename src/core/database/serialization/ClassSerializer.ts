@@ -1,68 +1,56 @@
 import "reflect-metadata"; //required for class transformer to work;
 import {
-    ClassConstructor,
-    instanceToPlain,
-    plainToInstance,
+  ClassConstructor,
+  instanceToPlain,
+  plainToInstance,
 } from "class-transformer";
 import { ISerializer } from "./";
 
 /**
  *
- * An implementation of {@link ISerializer} that uses the
- * class-transfromer npm package. class-transformer enables to quickly add complex
- * jsonification logic to Javascript classes.
+ * An implementation of {@link ISerializer} that uses class-transfromer npm package
  *
- * Classes must be annotated according using class-transformer
- * for this serializer to work as expected.
+ * @remarks class-transformer is a powerful library controlling how we turning json into class instances
+ *
+ * Classes using this serializer MUST annotate all members with @Expose()
  * @see https://www.npmjs.com/package/class-transformer
- *
  */
 export class ClassSerializer<T> implements ISerializer<T> {
-    constructor(private readonly classConstructor: ClassConstructor<T>) {}
+  constructor(private readonly classConstructor: ClassConstructor<T>) {}
 
-    public toJson(object: T): Record<string, any> {
-        return ClassSerializer.classToPlainJson(object);
-    }
+  /**
+   * Turns an instance of a class into plain json into an instance of a class using the class-transformer npm package.
+   */
+  public toJson(object: T): Record<string, any> {
+    return instanceToPlain(object, {
+      excludeExtraneousValues: true,
+      exposeUnsetFields: false,
+    });
+  }
 
-    public fromJson(json: Record<string, any>): T {
-        return ClassSerializer.plainJsonToClass(this.classConstructor, json);
-    }
+  /**
+   * Turns plain json into an instance of a class using the class-transformer npm package.
+   *
+   * @remarks Classes using this serializer MUST annotate all members with @Expose() because of the use of the `excludeExtraneousValues: true` option
+   */
+  public fromJson(json: Record<string, any>): T {
+    return plainToInstance(this.classConstructor, json, {
+      excludeExtraneousValues: true,
+      exposeUnsetFields: false,
+    });
+  }
 
-    public serialize(classBasedObject: Record<any, any>): string {
-        return JSON.stringify(
-            instanceToPlain(classBasedObject, { exposeUnsetFields: false })
-        );
-    }
+  /**
+   * Turns an object into a stringified json representation of the object
+   */
+  public serialize(object: Record<any, any>): string {
+    return JSON.stringify(this.toJson(object));
+  }
 
-    public deserialize(serializedJson: string): T {
-        return plainToInstance(
-            this.classConstructor,
-            JSON.parse(serializedJson),
-            {
-                excludeExtraneousValues: true,
-            }
-        );
-    }
-
-    /**
-     * This method enables turning json into any class annotated with class-transformer
-     * without the need to make a typed instance of an {@link ClassSerializer}
-     */
-    static plainJsonToClass<V>(
-        classConstructor: ClassConstructor<V>,
-        json: Record<any, any>
-    ): V {
-        return plainToInstance(classConstructor, json, {
-            excludeExtraneousValues: true,
-            exposeUnsetFields: false,
-        });
-    }
-
-    /**
-     * This method enables jsonifying any class annotated with class-transformer
-     * without the need to make a typed instance of an {@link ClassSerializer}
-     */
-    static classToPlainJson<T>(classBasedObject: T): Record<string, any> {
-        return instanceToPlain(classBasedObject, { exposeUnsetFields: false });
-    }
+  /**
+   * Turns stringified json back into a specific class
+   */
+  public deserialize(serializedJson: string): T {
+    return this.fromJson(JSON.parse(serializedJson));
+  }
 }

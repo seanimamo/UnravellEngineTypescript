@@ -1,4 +1,3 @@
-import { APIGatewayProxyCognitoAuthorizer } from "aws-lambda";
 import { BaseApiGatewayProxyRequestHandler } from "../../../../core/api/public/aws-lambda";
 import { IApiGatewayProxyRequestProcessor } from "../../../../core/api/public/aws-lambda/BaseApiGatewayProxyRequestHandler";
 
@@ -9,10 +8,8 @@ import { IApiGatewayProxyRequestProcessor } from "../../../../core/api/public/aw
  *
  * @see {@link BasicLambdaApiRequestHanderWithCognitoAuthorizer}
  */
-export class PublicApiGatewayProxyRequestHandler extends BaseApiGatewayProxyRequestHandler<APIGatewayProxyCognitoAuthorizer> {
-  constructor(
-    apiRequestProcessor: IApiGatewayProxyRequestProcessor<APIGatewayProxyCognitoAuthorizer>
-  ) {
+export class PublicApiGatewayProxyRequestHandler extends BaseApiGatewayProxyRequestHandler {
+  constructor(apiRequestProcessor: IApiGatewayProxyRequestProcessor) {
     super(apiRequestProcessor, new Set());
   }
 

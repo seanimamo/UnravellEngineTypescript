@@ -6,18 +6,19 @@ import {
   UpdateItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import {
-  InvalidParametersError,
-  ObjectDoesNotExistError,
-} from "../../../../../database/error";
-import {
   GENERIC_DYNAMODB_INDEXES,
   DynamoDbRepository,
   KeyFactory,
-} from "../../../../../database/dynamodb";
+} from "@/core/database/dynamodb";
 import { unmarshall } from "@aws-sdk/util-dynamodb";
-import { retryAsyncMethodWithExpBackoffJitter } from "../../../../../util";
+import { retryAsyncMethodWithExpBackoffJitter } from "@/core/util";
 import { ISubscription, SubscriptionStatus } from "../../types";
-import { IDatabaseResponse, ISerializer } from "../../../../../database";
+import {
+  IDatabaseResponse,
+  ISerializer,
+  InvalidParametersDbError,
+  ObjectDoesNotExistDbError,
+} from "@/core/database";
 import { ISubscriptionRepo } from "../ISubscriptionRepo";
 import { PaymentProcessorType } from "../../../types";
 
@@ -60,7 +61,7 @@ export abstract class BasicSubscriptionDynamoDbRepo<
   };
 
   async delete(subscription: TSubscription) {
-    return await super.delete(subscription);
+    return await super.deleteByObject(subscription);
   }
 
   async getById(id: string): Promise<IDatabaseResponse<TSubscription | null>> {
@@ -135,7 +136,7 @@ export abstract class BasicSubscriptionDynamoDbRepo<
     let getSubscriptionResponse = await this.getById(id);
     const subscription = getSubscriptionResponse.data;
     if (subscription === null) {
-      throw new ObjectDoesNotExistError("Subscription does not exist");
+      throw new ObjectDoesNotExistDbError("Subscription does not exist");
     }
 
     const updateExpressionCommands = [];
@@ -156,7 +157,7 @@ export abstract class BasicSubscriptionDynamoDbRepo<
     }
 
     if (updateExpressionCommands.length === 0) {
-      throw new InvalidParametersError(
+      throw new InvalidParametersDbError(
         "Cannot attempt subscription update with no changes"
       );
     }

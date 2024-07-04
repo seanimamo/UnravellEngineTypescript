@@ -24,11 +24,14 @@
     "forceConsistentCasingInFileNames": true,
     "paths": {
         "@/core/api/*": ["./src/core/api/*"],
-        "@/core/common/*": ["./src/core/common/*"],
+        "@/core/api/public": ["./src/core/api/public/index"],
+        "@/core/common": ["./src/core/common/index"],
         "@/core/database/*": ["./src/core/database/*"],
+        "@/core/database": ["./src/core/database/index"],
         "@/core/infrastructure/*": ["./src/core/infrastructure/*"],
         "@/core/user/*": ["./src/core/user/*"],
-        "@/core/util": ["./src/core/util/index"]
+        "@/core/util": ["./src/core/util/index"],
+        "@/core/features/*": ["./src/core/features/*"]
       }
   },
   "exclude": [

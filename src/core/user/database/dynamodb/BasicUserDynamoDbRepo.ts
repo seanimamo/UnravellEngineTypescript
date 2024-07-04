@@ -6,9 +6,9 @@ import {
   UpdateItemCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import {
-  InvalidParametersError,
-  ObjectDoesNotExistError,
-} from "../../../database/error";
+  InvalidParametersDbError,
+  ObjectDoesNotExistDbError,
+} from "@/core/database";
 import {
   GENERIC_DYNAMODB_INDEXES,
   DynamoDbRepository,
@@ -58,7 +58,7 @@ export abstract class BasicUserDynamoDbRepo
   };
 
   async delete(user: IUser) {
-    return await super.delete(user);
+    return await super.deleteByObject(user);
   }
 
   async getById(id: string): Promise<IDatabaseResponse<IUser | null>> {
@@ -162,7 +162,7 @@ export abstract class BasicUserDynamoDbRepo
     let getUserResponse = await this.getById(id);
     const user = getUserResponse.data;
     if (user === null) {
-      throw new ObjectDoesNotExistError("User does not exist");
+      throw new ObjectDoesNotExistDbError("User does not exist");
     }
 
     const updateExpressionCommands = [];
@@ -190,7 +190,7 @@ export abstract class BasicUserDynamoDbRepo
     }
 
     if (updateExpressionCommands.length === 0) {
-      throw new InvalidParametersError(
+      throw new InvalidParametersDbError(
         "Cannot attempt user update with no changes"
       );
     }
